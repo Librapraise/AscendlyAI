@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Eye
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface Resume {
   id: string;
@@ -141,7 +142,7 @@ export default function DocumentGenerationPage() {
 
   const fetchGeneratedDocuments = async () => {
     try {
-      const response = await fetch('/api/v1/documents/generated/');
+      const response = await fetch('https://weapply.onrender.com/api/v1/documents/generated/');
       if (response.ok) {
         const documents = await response.json();
         setGeneratedDocuments(documents);
@@ -153,7 +154,7 @@ export default function DocumentGenerationPage() {
 
   const handleDownload = async (docId: string) => {
     try {
-      const response = await fetch(`/api/v1/documents/generated/${docId}/download`);
+      const response = await fetch(`https://weapply.onrender.com/api/v1/documents/generated/${docId}/download`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -251,13 +252,19 @@ export default function DocumentGenerationPage() {
     );
   };
 
+
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-gray-900 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="opacity-0 animate-fade-in" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
           <div className="flex items-center space-x-4 mb-6">
-            <button className="text-gray-400 hover:text-white transition-colors">
+            <button 
+              className="cursor-pointer text-gray-400 hover:text-white transition-colors"
+              onClick={() => router.back()}
+            >
               <ArrowLeft size={24} />
             </button>
             <h1 className="text-3xl font-bold text-white">Document Generation</h1>

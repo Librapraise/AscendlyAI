@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ResumMeAI",
+  title: "AscendlyAI",
   description: "AI-powered resume builder", 
 };
 

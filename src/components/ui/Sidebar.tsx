@@ -7,7 +7,7 @@ import {
   LogOut,
 } from 'lucide-react';
 import { User } from "../../lib/data";
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
  
 interface SidebarProps {
   isOpen: boolean;
@@ -17,6 +17,9 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen, setIsOpen, onLogout, user }: SidebarProps) {
+
+  const pathName = usePathname();
+
   const router = useRouter();
   const navItems = [
     { icon: Home, label: 'Overview', active: true, path: '/dashboard' },
@@ -50,7 +53,7 @@ export default function Sidebar({ isOpen, setIsOpen, onLogout, user }: SidebarPr
                 <span className="text-white font-bold text-lg">D</span>
               </div>
               <div>
-                <h2 className="text-white font-bold text-lg">ResumMeAI</h2>
+                <h2 className="text-white font-bold text-lg">AscendlyAI</h2>
                 <p className="text-gray-300 text-sm">Generate & Edit</p>
               </div>
             </div>
@@ -58,16 +61,19 @@ export default function Sidebar({ isOpen, setIsOpen, onLogout, user }: SidebarPr
 
           <nav className="flex-1 p-4">
             <div className="space-y-2">
-              {navItems.map((item, index) => (
-                <button 
-                  key={index} 
-                  onClick={() => handleNavigation(item.path)}
-                  className={`cursor-pointer w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${item.active ? 'bg-blue-500 text-white' : 'text-gray-200 hover:bg-gray-700 hover:text-white'}`}
-                >
-                  <item.icon size={20} />
-                  <span className="font-medium">{item.label}</span>
-                </button>
-              ))}
+              {navItems.map((item, index) => {
+                const isActive = pathName === item.path;
+                return (
+                  <button 
+                    key={index} 
+                    onClick={() => handleNavigation(item.path)}
+                    className={`cursor-pointer w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-left transition-colors ${isActive ? 'bg-blue-500 text-white' : 'text-gray-200 hover:bg-gray-700 hover:text-white'}`}
+                  >
+                    <item.icon size={20} />
+                    <span className="font-medium">{item.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </nav>
 
