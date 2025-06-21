@@ -61,6 +61,11 @@ export default function DashboardPage() {
         >
             <Plus size={24} />
         </button>
+
+        {/* Footer */}
+      <div className="text-center text-gray-500 text-sm mt-12">
+        <p>© 2025 AscendlyAI. All rights reserved.</p>
+      </div>
     </div>
   );
 }
