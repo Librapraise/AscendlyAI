@@ -23,40 +23,38 @@ import {
 
 interface Resume {
   id: number;
-  file_record: {
-    filename: string;
+  file?: {
+    filename?: string;
     content_type: string;
-    upload_date: string;
-    file_size: number;
+    size: number;
   };
-  extracted_text: string | null;
-  created_at: string;
-  updated_at: string;
+  upload_timestamp?: string;
+  extracted_text?: string;
+  created_at?: string;
 }
 
 interface JobDescription {
   id: number;
-  title: string;
-  company: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
+  title?: string;
+  company?: string;
+  description_text?: string;
+  created_at?: string;
 }
 
 interface GeneratedDocument {
   id: number;
-  type: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  content: string | null;
-  error_message: string | null;
-  file: {
-    filename: string;
+  type?: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  content?: string | null;
+  error_message?: string | null;
+  file?: {
+    filename?: string;
     content_type: string;
   } | null;
-  source_resume_id: number;
-  source_job_description_id: number | null;
-  created_at: string;
-  updated_at: string;
+  source_resume_id?: number;
+  source_job_description_id?: number | null;
+  created_at?: string;
+  updated_timestamp?: string;
 }
 
 interface AuthState {
@@ -655,9 +653,9 @@ const handleFileUpload = async (file: File) => {
                   <div className="flex items-center space-x-3">
                     <FileText className="text-blue-400 flex-shrink-0" size={20} />
                     <div className="min-w-0 flex-1">
-                      <p className="text-white font-medium truncate">{resume.file_record.filename}</p>
+                      <p className="text-white font-medium truncate">{resume.file?.filename}</p>
                       <p className="text-gray-400 text-sm">
-                        {formatDate(resume.file_record.upload_date)} • {formatFileSize(resume.file_record.file_size)}
+                        {formatDate(resume.upload_timestamp ?? '')} • {formatFileSize(resume.file?.size ?? 0)}
                         {!resume.extracted_text && <span className="text-yellow-400 ml-2">• Processing...</span>}
                       </p>
                     </div>
@@ -694,7 +692,8 @@ const handleFileUpload = async (file: File) => {
                       <Briefcase className="text-green-400 flex-shrink-0" size={20} />
                       <div className="min-w-0 flex-1">
                         <p className="text-white font-medium truncate">{jd.title}</p>
-                        <p className="text-gray-400 text-sm">{jd.company} • {formatDate(jd.created_at)}</p>
+                        <p className="text-gray-400 text-sm">{jd.company} • {formatDate(jd.created_at ?? '')}</p>
+                        <p className="text-gray-500 text-sm mt-1 line-clamp-2">{jd.description_text}</p>
                       </div>
                     </div>
                   </div>
@@ -833,22 +832,22 @@ const handleFileUpload = async (file: File) => {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3 min-w-0 flex-1">
                       <div className="p-2 bg-blue-500/20 rounded-lg flex-shrink-0">
-                        {getDocumentTypeIcon(doc.type)}
+                        {getDocumentTypeIcon(doc.type ?? '')}
                       </div>
                       <div className="min-w-0 flex-1">
                         <h3 className="text-white font-medium text-sm sm:text-base truncate">
-                          {getDocumentTypeLabel(doc.type)}
+                          {getDocumentTypeLabel(doc.type ?? '')}
                         </h3>
-                        <p className="text-gray-400 text-xs sm:text-sm">{formatDate(doc.created_at)}</p>
+                        <p className="text-gray-400 text-xs sm:text-sm">{formatDate(doc.created_at ?? '')}</p>
                         {doc.error_message && (
                           <p className="text-red-400 text-xs mt-1 truncate">{doc.error_message}</p>)}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
                       <div className="flex items-center space-x-1">
-                        {getStatusIcon(doc.status)}
+                        {getStatusIcon(doc.status ?? '')}
                         <span className="text-xs sm:text-sm text-gray-400">
-                          {getStatusText(doc.status)}
+                          {getStatusText(doc.status ?? '')}
                         </span>
                       </div>
                       

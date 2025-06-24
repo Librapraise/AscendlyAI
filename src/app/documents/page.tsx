@@ -21,14 +21,19 @@ import {
 } from "lucide-react";
 
 interface Document {
-  id: string;
-  filename?: string;
+  id: number;
+  file?: {
+    filename?: string;
+    size: number;
+    content_type: string;
+  };
   title?: string;
   company?: string;
   content?: string;
-  description?: string;
-  uploadedAt?: string;
-  createdAt?: string;
+  extracted_text?: string;
+  description_text?: string;
+  upload_timestamp?: string;
+  created_at?: string;
   size?: number;
   type?: string;
 }
@@ -508,7 +513,8 @@ export default function DocumentManagementPage() {
         body: JSON.stringify({
           title: title.trim(),
           company: company.trim(),
-          description: description.trim()
+          description_text: description.trim(),
+          created_at: new Date().toISOString()
         }),
       });
       
@@ -643,14 +649,14 @@ export default function DocumentManagementPage() {
 
   const handleDocumentSelect = (doc: Document) => {
     setSelectedDocument(doc);
-    setEditContent(doc.content || doc.description || "");
+    setEditContent(doc.content || doc.description_text || "");
     setActiveTab("viewer");
   };
 
   const getDocumentContent = (doc: Document) => {
     if (doc.content) return doc.content;
-    if (doc.description) return doc.description;
-    if (doc.filename && uploadedFilePreviews[doc.filename]) return uploadedFilePreviews[doc.filename];
+    if (doc.description_text || doc.extracted_text) return doc.description_text  || doc.extracted_text || "No content available.";
+    if (doc.file?.filename && uploadedFilePreviews[doc.file.filename]) return uploadedFilePreviews[doc.file.filename];
     return "No content available. Content extraction may require server-side processing for this file type.";
   };
 
@@ -959,13 +965,13 @@ export default function DocumentManagementPage() {
                 <div key={resume.id} className="bg-gray-700 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h3 className="font-medium">{resume.filename || resume.title || "Untitled"}</h3>
+                      <h3 className="font-medium">{resume.file?.filename || resume.title || "Untitled"}</h3>
                       <p className="text-sm text-gray-400 mt-1">
-                        {resume.uploadedAt || resume.createdAt 
-                          ? `Uploaded: ${new Date(resume.uploadedAt || resume.createdAt!).toLocaleDateString()}`
+                        {resume.upload_timestamp || resume.created_at 
+                          ? `Uploaded: ${new Date(resume.upload_timestamp || resume.created_at!).toLocaleDateString()}`
                           : "Date unknown"
                         }
-                        {resume.size && ` • ${(resume.size / 1024).toFixed(2)} KB`}
+                        {(resume.size ?? 0) && ` • ${((resume.size ?? 0) / 1024).toFixed(2)} KB`}
                       </p>
                     </div>
                     <div className="flex gap-2 ml-4">
@@ -977,7 +983,7 @@ export default function DocumentManagementPage() {
                         <Eye size={16} />
                       </button>
                       <button
-                        onClick={() => downloadDoc(resume.id, 'resume')}
+                        onClick={() => downloadDoc(resume.id.toString(), 'resume')}
                         className="p-2 bg-green-600 hover:bg-green-700 rounded transition-colors"
                         title="Download"
                       >
@@ -1078,10 +1084,10 @@ export default function DocumentManagementPage() {
                       <h3 className="font-medium">{job.title}</h3>
                       <p className="text-blue-400 text-sm">{job.company}</p>
                       <p className="text-sm text-gray-400 mt-2 line-clamp-3">
-                        {job.description}
+                        {job.description_text || "No description available."}
                       </p>
                       <p className="text-xs text-gray-500 mt-2">
-                        {job.createdAt ? `Created: ${new Date(job.createdAt).toLocaleDateString()}` : ""}
+                        {job.created_at ? `Created: ${new Date(job.created_at).toLocaleDateString()}` : ""}
                       </p>
                     </div>
                     <div className="flex gap-2 ml-4">
@@ -1128,10 +1134,10 @@ export default function DocumentManagementPage() {
                 <div key={doc.id} className="bg-gray-700 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h3 className="font-medium">{doc.title || doc.filename || "Generated Document"}</h3>
+                      <h3 className="font-medium">{doc.title || doc.file?.filename || "Generated Document"}</h3>
                       <p className="text-sm text-gray-400 mt-1">
-                        {doc.createdAt 
-                          ? `Generated: ${new Date(doc.createdAt).toLocaleDateString()}`
+                        {doc.created_at 
+                          ? `Generated: ${new Date(doc.created_at).toLocaleDateString()}`
                           : "Date unknown"
                         }
                         {doc.type && ` • ${doc.type}`}
@@ -1146,7 +1152,7 @@ export default function DocumentManagementPage() {
                         <Eye size={16} />
                       </button>
                       <button
-                        onClick={() => downloadDoc(doc.id)}
+                        onClick={() => downloadDoc(doc.id.toString())}
                         className="p-2 bg-green-600 hover:bg-green-700 rounded transition-colors"
                         title="Download"
                       >
@@ -1167,9 +1173,11 @@ export default function DocumentManagementPage() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold">
-                    {selectedDocument.title || selectedDocument.filename || "Document Viewer"}
+                    {selectedDocument.title || selectedDocument.file?.filename || "Document Viewer"}
                   </h2>
                   <div className="flex gap-2">
+
+                    {/*Editing document content */}
                     {!isEditing ? (
                       <>
                         <button
@@ -1183,7 +1191,7 @@ export default function DocumentManagementPage() {
                           Edit
                         </button>
                         <button
-                          onClick={() => downloadDoc(selectedDocument.id)}
+                          onClick={() => downloadDoc(selectedDocument.id.toString(), 'generated')}
                           className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors"
                         >
                           <Download size={16} />
@@ -1224,18 +1232,18 @@ export default function DocumentManagementPage() {
                         <span className="ml-2">{selectedDocument.company}</span>
                       </div>
                     )}
-                    {(selectedDocument.createdAt || selectedDocument.uploadedAt) && (
+                    {(selectedDocument.created_at || selectedDocument.upload_timestamp) && (
                       <div>
                         <span className="text-gray-400">Date:</span>
                         <span className="ml-2">
-                          {new Date(selectedDocument.createdAt || selectedDocument.uploadedAt!).toLocaleDateString()}
+                          {new Date(selectedDocument.created_at || selectedDocument.upload_timestamp!).toLocaleDateString()}
                         </span>
                       </div>
                     )}
-                    {selectedDocument.size && (
+                    {(selectedDocument.size ?? 0) && (
                       <div>
                         <span className="text-gray-400">Size:</span>
-                        <span className="ml-2">{(selectedDocument.size / 1024).toFixed(2)} KB</span>
+                        <span className="ml-2">{((selectedDocument.size ?? 0) / 1024).toFixed(2)} KB</span>
                       </div>
                     )}
                   </div>

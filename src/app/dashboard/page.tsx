@@ -25,13 +25,18 @@ import {
 
 interface Document {
   id: string;
-  filename?: string;
+  file?: {
+    filename?: string;
+    size: number;
+    content_type: string;
+  };
   title?: string;
   company?: string;
   content?: string;
-  description?: string;
-  uploadedAt?: string;
-  createdAt?: string;
+  extracted_text?: string;
+  description_text?: string;
+  upload_timestamp?: string;
+  created_at?: string;
   size?: number;
   type?: string;
 }
@@ -835,11 +840,11 @@ export default function DashboardPage() {
                         <FileText size={20} className="text-blue-400" />
                         <div>
                           <p className="font-medium text-white truncate max-w-[200px]">
-                            {doc.title || doc.filename || 'Untitled Document'}
+                            {doc.title || doc.file?.filename || 'Untitled Document'}
                           </p>
-                          {doc.description && (
+                          {doc.description_text && (
                             <p className="text-sm text-gray-400 truncate max-w-[200px]">
-                              {doc.description}
+                              {doc.description_text}
                             </p>
                           )}
                         </div>
@@ -864,8 +869,8 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-1 text-gray-400">
                         <Calendar size={14} />
                         <span className="text-sm">
-                          {doc.createdAt || doc.uploadedAt ? 
-                            new Date(doc.createdAt || doc.uploadedAt!).toLocaleDateString() : 
+                          {doc.created_at || doc.upload_timestamp ? 
+                            new Date(doc.created_at || doc.upload_timestamp!).toLocaleDateString() : 
                             'Unknown'
                           }
                         </span>
@@ -935,7 +940,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-2">
                     <FileText size={16} className="text-blue-400" />
                     <span className="text-sm truncate max-w-[150px]">
-                      {resume.title || resume.filename || 'Untitled Resume'}
+                      {resume.title || resume.file?.filename || 'Untitled Resume'}
                     </span>
                   </div>
                   <button
