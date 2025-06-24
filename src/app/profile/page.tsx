@@ -1,13 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Briefcase, GraduationCap, AlertCircle, CheckCircle, Loader, Plus } from 'lucide-react';
-import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { User, Mail, Phone, MapPin, Calendar, Edit3, Save, X, Camera, Briefcase, GraduationCap, AlertCircle, CheckCircle, Loader } from 'lucide-react';
 
 interface UserData {
-  id: string;
-  name: string;
+  id: number;
   email: string;
+  first_name: string;
+  last_name: string;
   phone?: string;
   location?: string;
   title?: string;
@@ -19,13 +20,11 @@ interface UserData {
   linkedIn?: string;
   github?: string;
   website?: string;
-  avatar?: string | null;
-  joinedDate: string;
-  documentsGenerated: number;
-  lastActive: string;
+  avatar?: string;
 }
 
 export default function ProfilePage() {
+  const { user: authUser, isAuthenticated, signOut } = useAuth();
   const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -34,26 +33,9 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState<string>('');
   const [editData, setEditData] = useState<Partial<UserData>>({});
 
-  // Mock data for demonstration - remove this and use real API
-  const mockUserData: UserData = {
-    id: '123',
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567',
-    location: 'San Francisco, CA',
-    title: 'Senior Software Developer',
-    company: 'Tech Corp Inc.',
-    bio: 'Experienced software developer with 5+ years in full-stack development. Passionate about creating efficient and scalable solutions.',
-    education: 'B.S. Computer Science - Stanford University',
-    experience: '5+ years',
-    skills: ['JavaScript', 'React', 'Node.js', 'Python', 'AWS'],
-    linkedIn: 'https://linkedin.com/in/johndoe',
-    github: 'https://github.com/johndoe',
-    website: 'https://johndoe.dev',
-    avatar: null,
-    joinedDate: '2023-01-15',
-    documentsGenerated: 23,
-    lastActive: '2024-06-17'
+  // Get auth token from localStorage
+  const getAuthToken = (): string => {
+    return localStorage.getItem('access_token') || '';
   };
 
   const fetchUserProfile = async (): Promise<void> => {
@@ -61,44 +43,54 @@ export default function ProfilePage() {
       setIsLoading(true);
       setError('');
       
-      // Get auth token (in real app, get from localStorage or auth context)
-      const token = localStorage.getItem('access_token');
-      
-      if (!token) {
+      // Check if user is authenticated
+      if (!isAuthenticated) {
         setError('Authentication required. Please log in again.');
+        setIsLoading(false);
         return;
       }
 
-      // For demo purposes, simulate API call with mock data
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setUser(mockUserData);
-      setEditData(mockUserData);
-
+      const token = getAuthToken();
       
-      const response = await axios.get('https://weapply.onrender.com/api/v1/users/me', {
+      if (!token) {
+        setError('Authentication required. Please log in again.');
+        setIsLoading(false);
+        signOut();
+        return;
+      }
+
+      const response = await fetch('https://weapply.onrender.com/api/v1/users/me', {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
 
-      if (response.data.success) {
-        setUser(response.data.data);
-        setEditData(response.data.data);
-      } else {
-        setError('Failed to load profile data');
+      if (response.status === 401) {
+        setError('Session expired. Please log in again.');
+        signOut();
+        return;
       }
-      
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data && (data.success !== false)) {
+        // Handle both direct data and wrapped data formats
+        const userData = data.data || data;
+        setUser(userData);
+        setEditData(userData);
+      } else {
+        throw new Error('Invalid response format');
+      }
 
     } catch (err: any) {
       console.error('Error fetching profile:', err);
-      if (err.response?.status === 401) {
-        setError('Session expired. Please log in again.');
-      } else if (err.response?.status === 404) {
-        setError('Profile not found.');
-      } else {
-        setError('Failed to load profile. Please try again.');
-      }
+      setError('Failed to load profile. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -110,38 +102,81 @@ export default function ProfilePage() {
       setError('');
       setSuccess('');
 
-      const token = localStorage.getItem('access_token');
+      // Check authentication
+      if (!isAuthenticated) {
+        setError('Authentication required. Please log in again.');
+        setIsSaving(false);
+        signOut();
+        return;
+      }
 
-      // For demo purposes, simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setUser(editData as UserData);
+      const token = getAuthToken();
+
+      if (!token) {
+        setError('Authentication required. Please log in again.');
+        setIsSaving(false);
+        signOut();
+        return;
+      }
+
+      // Validate required fields
+      if (!editData.first_name || !editData.last_name || !editData.email) {
+        setError('First name, last name, and email are required fields.');
+        setIsSaving(false);
+        return;
+      }
+
+      // Prepare update payload matching your schema
+      const updatePayload = {
+        email: editData.email,
+        first_name: editData.first_name,
+        last_name: editData.last_name,
+        phone: editData.phone || null,
+        location: editData.location || null,
+        title: editData.title || null,
+        company: editData.company || null,
+        bio: editData.bio || null,
+        education: editData.education || null,
+        experience: editData.experience || null,
+        skills: editData.skills || null,
+        linkedIn: editData.linkedIn || null,
+        github: editData.github || null,
+        website: editData.website || null,
+        avatar: editData.avatar || null
+      };
+
+      const response = await fetch('https://weapply.onrender.com/api/v1/users/me', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatePayload)
+      });
+
+      if (response.status === 401) {
+        setError('Session expired. Please log in again.');
+        signOut();
+        return;
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const updatedUser = data.data || data;
+
+      setUser(updatedUser);
+      setEditData(updatedUser);
       setIsEditing(false);
       setSuccess('Profile updated successfully!');
       setTimeout(() => setSuccess(''), 3000);
-
-      
-      const response = await axios.put('https://weapply.onrender.com/api/v1/users/me', 
-        editData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
-      if (response.data.success) {
-        setUser(editData as UserData);
-        setIsEditing(false);
-        setSuccess('Profile updated successfully!');
-        setTimeout(() => setSuccess(''), 3000);
-      } else {
-        setError('Failed to update profile');
-      }
       
     } catch (err: any) {
       console.error('Error updating profile:', err);
-      setError('Failed to update profile. Please try again.');
+      setError(err.message || 'Failed to update profile. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -168,9 +203,20 @@ export default function ProfilePage() {
     setError('');
   };
 
+  // Helper function to get full name
+  const getFullName = (userData: UserData | null): string => {
+    if (!userData) return 'User';
+    return `${userData.first_name || ''} ${userData.last_name || ''}`.trim() || 'User';
+  };
+
   useEffect(() => {
-    fetchUserProfile();
-  }, []);
+    if (isAuthenticated) {
+      fetchUserProfile();
+    } else {
+      setIsLoading(false);
+      setError('Please log in to view your profile.');
+    }
+  }, [isAuthenticated]);
 
   if (isLoading) {
     return (
@@ -183,6 +229,24 @@ export default function ProfilePage() {
     );
   }
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+        <div className="bg-gray-800 rounded-2xl border border-gray-700 shadow-lg p-8 max-w-md w-full text-center">
+          <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-white mb-2">Authentication Required</h2>
+          <p className="text-gray-300 mb-6">Please log in to view your profile.</p>
+          <button
+            onClick={() => window.location.href = '/signin'}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 w-full"
+          >
+            Go to Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (error && !user) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -190,12 +254,20 @@ export default function ProfilePage() {
           <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-white mb-2">Error Loading Profile</h2>
           <p className="text-gray-300 mb-6">{error}</p>
-          <button
-            onClick={fetchUserProfile}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
-          >
-            Try Again
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={fetchUserProfile}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 w-full"
+            >
+              Try Again
+            </button>
+            <button
+              onClick={signOut}
+              className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 w-full"
+            >
+              Sign Out
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -223,11 +295,11 @@ export default function ProfilePage() {
               </div>
               
               <div className="text-center sm:text-left">
-                <h1 className="text-2xl sm:text-3xl font-bold text-white">{user?.name || 'User'}</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold text-white">{getFullName(user)}</h1>
                 <p className="text-gray-300 text-base sm:text-lg">{user?.title || 'Professional'}</p>
                 <div className="flex items-center justify-center sm:justify-start text-sm text-gray-400 mt-2">
                   <Calendar className="w-4 h-4 mr-2" />
-                  Joined {user?.joinedDate ? new Date(user.joinedDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'Recently'}
+                  Member since {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                 </div>
               </div>
             </div>
@@ -269,7 +341,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-
         {/* Success/Error Messages */}
         {error && (
           <div className="opacity-0 animate-fade-in mb-6 p-4 bg-red-900/20 border border-red-700 rounded-lg flex items-center space-x-3" style={{ animationDelay: '0.15s', animationFillMode: 'forwards' }}>
@@ -293,27 +364,55 @@ export default function ProfilePage() {
               <h2 className="text-xl font-bold text-white mb-6">Personal Information</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-3">Full Name</label>
+                  <label className="block text-sm font-medium text-gray-300 mb-3">First Name</label>
                   {isEditing ? (
                     <input
                       type="text"
-                      value={editData.name || ''}
-                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      value={editData.first_name || ''}
+                      onChange={(e) => handleInputChange('first_name', e.target.value)}
                       className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+                      required
                     />
                   ) : (
                     <div className="flex items-center space-x-3">
                       <User className="w-5 h-5 text-gray-400" />
-                      <span className="text-white">{user?.name || 'Not provided'}</span>
+                      <span className="text-white">{user?.first_name || 'Not provided'}</span>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-3">Last Name</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editData.last_name || ''}
+                      onChange={(e) => handleInputChange('last_name', e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+                      required
+                    />
+                  ) : (
+                    <div className="flex items-center space-x-3">
+                      <User className="w-5 h-5 text-gray-400" />
+                      <span className="text-white">{user?.last_name || 'Not provided'}</span>
                     </div>
                   )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-3">Email</label>
-                  <div className="flex items-center space-x-3">
-                    <Mail className="w-5 h-5 text-gray-400" />
-                    <span className="text-white">{user?.email || 'Not provided'}</span>
-                  </div>
+                  {isEditing ? (
+                    <input
+                      type="email"
+                      value={editData.email || ''}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors duration-200"
+                      required
+                    />
+                  ) : (
+                    <div className="flex items-center space-x-3">
+                      <Mail className="w-5 h-5 text-gray-400" />
+                      <span className="text-white">{user?.email || 'Not provided'}</span>
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-3">Phone</label>
@@ -331,7 +430,7 @@ export default function ProfilePage() {
                     </div>
                   )}
                 </div>
-                <div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-300 mb-3">Location</label>
                   {isEditing ? (
                     <input
@@ -409,11 +508,15 @@ export default function ProfilePage() {
                     />
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      {user?.skills?.map((skill, index) => (
-                        <span key={index} className="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-lg text-sm border border-blue-500/30">
-                          {skill}
-                        </span>
-                      )) || <span className="text-gray-400">No skills added</span>}
+                      {user?.skills && user.skills.length > 0 ? (
+                        user.skills.map((skill, index) => (
+                          <span key={index} className="bg-blue-500/20 text-blue-300 px-3 py-1 rounded-lg text-sm border border-blue-500/30">
+                            {skill}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-gray-400">No skills added</span>
+                      )}
                     </div>
                   )}
                 </div>
@@ -435,7 +538,15 @@ export default function ProfilePage() {
                       placeholder="https://linkedin.com/in/yourprofile"
                     />
                   ) : (
-                    <span className="text-blue-400 hover:text-blue-300 transition-colors duration-200">{user?.linkedIn || 'Not provided'}</span>
+                    <div className="text-white">
+                      {user?.linkedIn ? (
+                        <a href={user.linkedIn} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors duration-200">
+                          {user.linkedIn}
+                        </a>
+                      ) : (
+                        'Not provided'
+                      )}
+                    </div>
                   )}
                 </div>
                 <div>
@@ -449,7 +560,15 @@ export default function ProfilePage() {
                       placeholder="https://github.com/yourusername"
                     />
                   ) : (
-                    <span className="text-blue-400 hover:text-blue-300 transition-colors duration-200">{user?.github || 'Not provided'}</span>
+                    <div className="text-white">
+                      {user?.github ? (
+                        <a href={user.github} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors duration-200">
+                          {user.github}
+                        </a>
+                      ) : (
+                        'Not provided'
+                      )}
+                    </div>
                   )}
                 </div>
                 <div>
@@ -463,7 +582,15 @@ export default function ProfilePage() {
                       placeholder="https://yourwebsite.com"
                     />
                   ) : (
-                    <span className="text-blue-400 hover:text-blue-300 transition-colors duration-200">{user?.website || 'Not provided'}</span>
+                    <div className="text-white">
+                      {user?.website ? (
+                        <a href={user.website} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors duration-200">
+                          {user.website}
+                        </a>
+                      ) : (
+                        'Not provided'
+                      )}
+                    </div>
                   )}
                 </div>
               </div>
@@ -474,20 +601,26 @@ export default function ProfilePage() {
           <div className="space-y-8">
             {/* Account Stats */}
             <div className="opacity-0 animate-fade-in bg-gray-800 rounded-2xl border border-gray-700 p-8" style={{ animationDelay: '0.5s', animationFillMode: 'forwards' }}>
-              <h3 className="text-xl font-bold text-white mb-6">Account Statistics</h3>
+              <h3 className="text-xl font-bold text-white mb-6">Account Information</h3>
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-300">Documents Generated</span>
-                  <span className="font-semibold text-blue-400">{user?.documentsGenerated || 0}</span>
+                  <span className="text-gray-300">User ID</span>
+                  <span className="font-semibold text-blue-400">#{user?.id || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-300">Account Status</span>
                   <span className="bg-green-500/20 text-green-300 px-3 py-1 rounded-lg text-sm border border-green-500/30">Active</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-300">Last Active</span>
+                  <span className="text-gray-300">Profile Completion</span>
                   <span className="text-sm text-gray-400">
-                    {user?.lastActive ? new Date(user.lastActive).toLocaleDateString() : 'Today'}
+                    {Math.round(((user?.first_name ? 1 : 0) + 
+                      (user?.last_name ? 1 : 0) + 
+                      (user?.email ? 1 : 0) + 
+                      (user?.phone ? 1 : 0) + 
+                      (user?.location ? 1 : 0) + 
+                      (user?.title ? 1 : 0) + 
+                      (user?.bio ? 1 : 0)) / 7 * 100)}%
                   </span>
                 </div>
               </div>
