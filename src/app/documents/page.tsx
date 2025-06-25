@@ -35,8 +35,9 @@ interface Document {
   upload_timestamp?: string;
   created_at?: string;
   size?: number;
-  type?: string;
+  type?: string;  
 }
+
 
 interface ApiResponse {
   success: boolean;
@@ -655,7 +656,7 @@ export default function DocumentManagementPage() {
 
   const getDocumentContent = (doc: Document) => {
     if (doc.content) return doc.content;
-    if (doc.description_text || doc.extracted_text) return doc.description_text  || doc.extracted_text || "No content available.";
+    if (doc.description_text || doc.extracted_text || doc.content) return doc.description_text || doc.extracted_text || doc.content || "No content available.";
     if (doc.file?.filename && uploadedFilePreviews[doc.file.filename]) return uploadedFilePreviews[doc.file.filename];
     return "No content available. Content extraction may require server-side processing for this file type.";
   };
@@ -1276,6 +1277,26 @@ export default function DocumentManagementPage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Footer */}
+      <div className="mt-12 pt-8 border-t border-gray-700">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
+          <p>© 2024 WeApply Dashboard. All rights reserved.</p>
+          <div className="flex items-center gap-4">
+            <span>Version 1.0.0</span>
+            {/*
+            <span>•</span>
+             Footer Links
+            <button
+              onClick={() => handleNavigation('/help')}
+              className="hover:text-white transition-colors"
+            >
+              Help & Support
+            </button>
+            */}
+          </div>
+        </div>
       </div>
     </div>
   );

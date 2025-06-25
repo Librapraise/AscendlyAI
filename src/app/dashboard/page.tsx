@@ -20,8 +20,12 @@ import {
   Calendar,
   TrendingUp,
   Users,
-  Activity
+  Activity,
+  Menu,
+  Filter
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import path from 'path';
 
 interface Document {
   id: string;
@@ -78,6 +82,8 @@ export default function DashboardPage() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authForm, setAuthForm] = useState({ email: "", password: "", apiKey: "" });
   const [authMode, setAuthMode] = useState<'login' | 'apikey'>('login');
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showMobileFilter, setShowMobileFilter] = useState(false);
 
   const fileInput = useRef<HTMLInputElement>(null);
   const requestTimeout = 30000;
@@ -415,9 +421,18 @@ export default function DashboardPage() {
     }
   };
 
+  const router = useRouter();
+  const navLinks = [
+    { path: '/documents' },
+    { path: '/generate' },
+  ];
   // Navigation handlers
-  const handleNavigation = (route: string) => {
-    window.location.href = route;
+  const handleNavigation = (path: string) => {
+    router.push(path);
+    if (window.innerWidth < 1024) {
+      setShowMobileMenu(false);
+      setShowMobileFilter(false);
+    }
   };
 
   const handleDocumentEdit = (id: string) => {
@@ -484,23 +499,23 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 md:p-8">
+    <div className="min-h-screen bg-gray-900 text-white">
       {/* Authentication Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Authentication Required</h2>
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
+            <h2 className="text-lg sm:text-xl font-bold mb-4">Authentication Required</h2>
             
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => setAuthMode('login')}
-                className={`flex-1 py-2 px-4 rounded ${authMode === 'login' ? 'bg-blue-600' : 'bg-gray-700'}`}
+                className={`flex-1 py-2 px-3 sm:px-4 rounded text-sm sm:text-base ${authMode === 'login' ? 'bg-blue-600' : 'bg-gray-700'}`}
               >
                 Login
               </button>
               <button
                 onClick={() => setAuthMode('apikey')}
-                className={`flex-1 py-2 px-4 rounded ${authMode === 'apikey' ? 'bg-blue-600' : 'bg-gray-700'}`}
+                className={`flex-1 py-2 px-3 sm:px-4 rounded text-sm sm:text-base ${authMode === 'apikey' ? 'bg-blue-600' : 'bg-gray-700'}`}
               >
                 API Key
               </button>
@@ -513,19 +528,19 @@ export default function DashboardPage() {
                   placeholder="Email"
                   value={authForm.email}
                   onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm sm:text-base"
                 />
                 <input
                   type="password"
                   placeholder="Password"
                   value={authForm.password}
                   onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm sm:text-base"
                 />
                 <button
                   onClick={() => login(authForm.email, authForm.password)}
                   disabled={loading || !authForm.email || !authForm.password}
-                  className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   {loading ? "Logging in..." : "Login"}
                 </button>
@@ -537,15 +552,15 @@ export default function DashboardPage() {
                   placeholder="Enter your API Key"
                   value={authForm.apiKey}
                   onChange={(e) => setAuthForm({...authForm, apiKey: e.target.value})}
-                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
+                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm sm:text-base"
                 />
-                <p className="text-sm text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-400">
                   Enter your WeApply API key or JWT token to access the API
                 </p>
                 <button
                   onClick={() => setApiKey(authForm.apiKey)}
                   disabled={!authForm.apiKey}
-                  className="w-full bg-green-600 hover:bg-green-700 py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-green-600 hover:bg-green-700 py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                 >
                   Set API Key
                 </button>
@@ -554,7 +569,7 @@ export default function DashboardPage() {
 
             <button
               onClick={() => setShowAuthModal(false)}
-              className="w-full mt-4 bg-gray-600 hover:bg-gray-700 py-2 rounded"
+              className="w-full mt-4 bg-gray-600 hover:bg-gray-700 py-2 rounded text-sm sm:text-base"
             >
               Cancel
             </button>
@@ -562,529 +577,575 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-            Dashboard
-          </h1>
-          <p className="text-gray-400 mt-2">Welcome to your document management center</p>
-        </div>
-        
-        {/* Network Status & Auth */}
-        <div className="flex items-center gap-3">
-          {!isOnline && (
-            <div className="flex items-center gap-2 text-red-400">
-              <WifiOff size={20} />
-              <span className="text-sm">Offline</span>
-            </div>
-          )}
-          
-          {auth.isAuthenticated ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-green-400">●</span>
-              <span className="text-sm text-gray-300">Authenticated</span>
-              <button 
-                onClick={logout}
-                className="text-gray-400 hover:text-white transition-colors p-1"
-                title="Logout"
-              >
-                <LogIn size={16} />
+      {/* Mobile Menu Overlay */}
+      {showMobileMenu && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={() => setShowMobileMenu(false)}>
+          <div className="fixed top-0 right-0 h-full w-64 bg-gray-800 p-4 transform transition-transform">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-semibold">Menu</h3>
+              <button onClick={() => setShowMobileMenu(false)}>
+                <X size={24} />
               </button>
             </div>
-          ) : (
-            <button 
-              onClick={() => setShowAuthModal(true)}
-              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800"
-              title="Login"
-            >
-              <Key size={20} />
-              <span className="text-sm">Login</span>
-            </button>
-          )}
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  handleNavigation('/documents');
+                  setShowMobileMenu(false);
+                }}
+                className="w-full text-left p-3 rounded-lg hover:bg-gray-700 flex items-center gap-3"
+              >
+                <FileText size={20} />
+                <span>Documents</span>
+              </button>
+              <button
+                onClick={() => {
+                  handleNavigation('/generate');
+                  setShowMobileMenu(false);
+                }}
+                className="w-full text-left p-3 rounded-lg hover:bg-gray-700 flex items-center gap-3"
+              >
+                <Activity size={20} />
+                <span>Generate</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="p-3 sm:p-4 md:p-6 lg:p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6 sm:mb-8">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent truncate">
+              Dashboard
+            </h1>
+            <p className="text-gray-400 mt-1 sm:mt-2 text-sm sm:text-base hidden sm:block">
+              Welcome to your document management center
+            </p>
+          </div>
           
-          <button 
-            onClick={loadData} 
-            disabled={loading}
-            className="text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800"
-            title="Refresh data"
-          >
-            <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
-          </button>
-        </div>
-      </div>
-
-      {/* Success Message */}
-      {successMessage && (
-        <div className="mb-6 bg-green-900/50 border border-green-700 p-4 rounded-lg flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CheckCircle size={20} className="text-green-400" />
-            <span>{successMessage}</span>
-          </div>
-          <button 
-            onClick={() => dismissMessage('success')}
-            className="text-green-400 hover:text-green-300"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
-      {/* Error Message */}
-      {error && (
-        <div className="mb-6 bg-red-900/50 border border-red-700 p-4 rounded-lg flex items-start justify-between">
-          <div className="flex items-start gap-2">
-            <AlertCircle size={20} className="text-red-400 mt-0.5 flex-shrink-0" />
-            <span className="whitespace-pre-line">{error}</span>
-          </div>
-          <button 
-            onClick={() => dismissMessage('error')}
-            className="text-red-400 hover:text-red-300 ml-2 flex-shrink-0"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      )}
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-6 rounded-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm">Total Documents</p>
-              <p className="text-2xl font-bold text-white">{stats.totalDocuments}</p>
-            </div>
-            <FileText className="text-blue-200" size={32} />
-          </div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-green-600 to-green-800 p-6 rounded-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-green-100 text-sm">Recent Uploads</p>
-              <p className="text-2xl font-bold text-white">{stats.recentUploads}</p>
-            </div>
-            <TrendingUp className="text-green-200" size={32} />
-          </div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-purple-600 to-purple-800 p-6 rounded-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-purple-100 text-sm">Generated Docs</p>
-              <p className="text-2xl font-bold text-white">{stats.generatedDocs}</p>
-            </div>
-            <Activity className="text-purple-200" size={32} />
-          </div>
-        </div>
-        
-        <div className="bg-gradient-to-br from-orange-600 to-orange-800 p-6 rounded-xl">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-orange-100 text-sm">Active Jobs</p>
-              <p className="text-2xl font-bold text-white">{stats.activeJobs}</p>
-            </div>
-            <Users className="text-orange-200" size={32} />
-          </div>
-        </div>
-      </div>
-
-      {/* Upload Zone */}
-      <div className="bg-gray-800 rounded-xl p-8 mb-8 border border-gray-700">
-        <h2 className="text-xl font-bold mb-4">Quick Upload</h2>
-        <div
-          onClick={() => fileInput.current?.click()}
-          className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center hover:border-blue-500 transition-colors cursor-pointer"
-        >
-          <Upload size={48} className="mx-auto mb-4 text-gray-400" />
-          <p className="text-lg mb-2">Drop files here or click to browse</p>
-          <p className="text-sm text-gray-400">
-            Supports PDF, DOC, DOCX, and TXT files (max 10MB each)
-          </p>
-        </div>
-        
-        <input
-          ref={fileInput}
-          type="file"
-          multiple
-          accept=".pdf,.doc,.docx,.txt"
-          onChange={(e) => e.target.files && uploadFiles(e.target.files)}
-          className="hidden"
-        />
-
-        {/* Upload Progress */}
-        {Object.keys(uploadProgress).length > 0 && (
-          <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-3">Upload Progress</h3>
-            {Object.entries(uploadProgress).map(([filename, progress]) => (
-              <div key={filename} className="mb-3">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm truncate">{filename}</span>
-                  <span className="text-sm">
-                    {progress === -1 ? "Failed" : progress === 100 ? "Complete" : `${progress}%`}
-                  </span>
-                </div>
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <div
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      progress === -1 ? "bg-red-500" : progress === 100 ? "bg-green-500" : "bg-blue-500"
-                    }`}
-                    style={{ width: `${Math.max(0, progress)}%` }}
-                  />
-                </div>
+          {/* Header Actions */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {!isOnline && (
+              <div className="flex items-center gap-1 sm:gap-2 text-red-400">
+                <WifiOff size={16} />
+                <span className="text-xs sm:text-sm hidden sm:inline">Offline</span>
               </div>
-            ))}
+            )}
+            
+            {auth.isAuthenticated ? (
+              <div className="flex items-center gap-1 sm:gap-2">
+                <span className="text-xs sm:text-sm text-green-400 hidden sm:inline">●</span>
+                <span className="text-xs sm:text-sm text-gray-300 hidden md:inline">Authenticated</span>
+                <button 
+                  onClick={logout}
+                  className="text-gray-400 hover:text-white transition-colors p-1 sm:p-2 rounded-lg hover:bg-gray-800"
+                  title="Logout"
+                >
+                  <LogIn size={16} />
+                </button>
+              </div>
+            ) : (
+              <button 
+                onClick={() => setShowAuthModal(true)}
+                className="flex items-center gap-1 sm:gap-2 text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800"
+                title="Login"
+              >
+                <Key size={16} />
+                <span className="text-xs sm:text-sm hidden sm:inline">Login</span>
+              </button>
+            )}
+            
+            <button 
+              onClick={loadData} 
+              disabled={loading}
+              className="text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800"
+              title="Refresh data"
+            >
+              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            </button>
+
+            <button 
+              onClick={() => setShowMobileMenu(true)}
+              className="lg:hidden text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800"
+            >
+              <Menu size={20} />
+            </button>
+          </div>
+        </div>
+
+        {/* Success Message */}
+        {successMessage && (
+          <div className="mb-4 sm:mb-6 bg-green-900/50 border border-green-700 p-3 sm:p-4 rounded-lg flex items-start justify-between">
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              <CheckCircle size={16} className="text-green-400 mt-0.5 flex-shrink-0" />
+              <span className="text-sm sm:text-base break-words">{successMessage}</span>
+            </div>
+            <button 
+              onClick={() => dismissMessage('success')}
+              className="text-green-400 hover:text-green-300 ml-2 flex-shrink-0"
+            >
+              <X size={16} />
+            </button>
           </div>
         )}
-      </div>
 
-      {/* Quick Actions */}
-      <div className="mb-8">
-        <h2 className="text-xl font-bold mb-6">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <button
-            onClick={() => handleNavigation('/documents')}
-            className="bg-gray-800 hover:bg-gray-700 p-6 rounded-xl transition-all duration-300 hover:scale-105 border border-gray-700 hover:border-blue-500"
-          >
-            <FileText size={32} className="text-blue-400 mb-3" />
-            <h3 className="font-semibold mb-2">Manage Documents</h3>
-            <p className="text-sm text-gray-400">View and organize all your documents</p>
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('/generate')}
-            className="bg-gray-800 hover:bg-gray-700 p-6 rounded-xl transition-all duration-300 hover:scale-105 border border-gray-700 hover:border-purple-500"
-          >
-            <Activity size={32} className="text-purple-400 mb-3" />
-            <h3 className="font-semibold mb-2">Generate Resume</h3>
-            <p className="text-sm text-gray-400">Create tailored resumes and cover letters</p>
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('/jobs')}
-            className="bg-gray-800 hover:bg-gray-700 p-6 rounded-xl transition-all duration-300 hover:scale-105 border border-gray-700 hover:border-green-500"
-          >
-            <Users size={32} className="text-green-400 mb-3" />
-            <h3 className="font-semibold mb-2">Job Descriptions</h3>
-            <p className="text-sm text-gray-400">Manage your job opportunities</p>
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('/analytics')}
-            className="bg-gray-800 hover:bg-gray-700 p-6 rounded-xl transition-all duration-300 hover:scale-105 border border-gray-700 hover:border-orange-500"
-          >
-            <TrendingUp size={32} className="text-orange-400 mb-3" />
-            <h3 className="font-semibold mb-2">Analytics</h3>
-            <p className="text-sm text-gray-400">View your application insights</p>
-          </button>
-        </div>
-      </div>
-
-      {/* Recent Documents */}
-      <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold">Recent Documents</h2>
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search documents..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none text-white placeholder-gray-400"
-              />
+        {/* Error Message */}
+        {error && (
+          <div className="mb-4 sm:mb-6 bg-red-900/50 border border-red-700 p-3 sm:p-4 rounded-lg flex items-start justify-between">
+            <div className="flex items-start gap-2 flex-1 min-w-0">
+              <AlertCircle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
+              <span className="whitespace-pre-line text-sm sm:text-base break-words">{error}</span>
             </div>
-            <button
-              onClick={() => handleNavigation('/documents')}
-              className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+            <button 
+              onClick={() => dismissMessage('error')}
+              className="text-red-400 hover:text-red-300 ml-2 flex-shrink-0"
             >
-              View All
+              <X size={16} />
+            </button>
+          </div>
+        )}
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
+          <div className="bg-gradient-to-br from-blue-600 to-blue-800 p-3 sm:p-4 lg:p-6 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-blue-100 text-xs sm:text-sm truncate">Total Documents</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-white">{stats.totalDocuments}</p>
+              </div>
+              <FileText className="text-blue-200 flex-shrink-0" size={20} />
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-green-600 to-green-800 p-3 sm:p-4 lg:p-6 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-green-100 text-xs sm:text-sm truncate">Recent Uploads</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-white">{stats.recentUploads}</p>
+              </div>
+              <TrendingUp className="text-green-200 flex-shrink-0" size={20} />
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-purple-600 to-purple-800 p-3 sm:p-4 lg:p-6 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-purple-100 text-xs sm:text-sm truncate">Generated Docs</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-white">{stats.generatedDocs}</p>
+              </div>
+              <Activity className="text-purple-200 flex-shrink-0" size={20} />
+            </div>
+          </div>
+          
+          <div className="bg-gradient-to-br from-orange-600 to-orange-800 p-3 sm:p-4 lg:p-6 rounded-xl">
+            <div className="flex items-center justify-between">
+              <div className="min-w-0 flex-1">
+                <p className="text-orange-100 text-xs sm:text-sm truncate">Active Jobs</p>
+                <p className="text-lg sm:text-xl lg:text-2xl font-bold text-white">{stats.activeJobs}</p>
+              </div>
+              <Users className="text-orange-200 flex-shrink-0" size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* Upload Zone */}
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 border border-gray-700">
+          <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Quick Upload</h2>
+          <div
+            onClick={() => fileInput.current?.click()}
+            className="border-2 border-dashed border-gray-600 rounded-lg p-4 sm:p-6 lg:p-8 text-center hover:border-blue-500 transition-colors cursor-pointer"
+          >
+            <Upload size={32} className="mx-auto mb-2 sm:mb-4 text-gray-400" />
+            <p className="text-sm sm:text-base lg:text-lg mb-1 sm:mb-2">Drop files here or click to browse</p>
+            <p className="text-xs sm:text-sm text-gray-400">
+              Supports PDF, DOC, DOCX, and TXT files (max 10MB each)
+            </p>
+          </div>
+          
+          <input
+            ref={fileInput}
+            type="file"
+            multiple
+            accept=".pdf,.doc,.docx,.txt"
+            onChange={(e) => e.target.files && uploadFiles(e.target.files)}
+            className="hidden"
+          />
+
+          {/* Upload Progress */}
+          {Object.keys(uploadProgress).length > 0 && (
+            <div className="mt-4 sm:mt-6">
+              <h3 className="text-base sm:text-lg font-semibold mb-2 sm:mb-3">Upload Progress</h3>
+              {Object.entries(uploadProgress).map(([filename, progress]) => (
+                <div key={filename} className="mb-2 sm:mb-3">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs sm:text-sm truncate max-w-[60%] sm:max-w-[70%]">{filename}</span>
+                    <span className="text-xs sm:text-sm">
+                      {progress === -1 ? "Failed" : progress === 100 ? "Complete" : `${progress}%`}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-1.5 sm:h-2">
+                    <div
+                      className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 ${
+                        progress === -1 ? "bg-red-500" : progress === 100 ? "bg-green-500" : "bg-blue-500"
+                      }`}
+                      style={{ width: `${Math.max(0, progress)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="mb-6 sm:mb-8">
+          <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">Quick Actions</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <button
+              onClick={() => handleNavigation(path.join('/documents', 'resume'))}
+              className="bg-gray-800 hover:bg-gray-700 p-4 sm:p-6 rounded-xl transition-all duration-300 hover:scale-105 border border-gray-700 hover:border-blue-500 text-left"
+            >
+              <FileText size={24} className="text-blue-400 mb-2 sm:mb-3" />
+              <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Manage Documents</h3>
+              <p className="text-xs sm:text-sm text-gray-400">View and organize all your documents</p>
+            </button>
+            
+            <button
+              onClick={() => handleNavigation('/generate')}
+              className="bg-gray-800 hover:bg-gray-700 p-4 sm:p-6 rounded-xl transition-all duration-300 hover:scale-105 border border-gray-700 hover:border-purple-500 text-left"
+            >
+              <Activity size={24} className="text-purple-400 mb-2 sm:mb-3" />
+              <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Generate Resume</h3>
+              <p className="text-xs sm:text-sm text-gray-400">Create tailored resumes and cover letters</p>
             </button>
           </div>
         </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <RefreshCw size={32} className="animate-spin text-gray-400" />
-            <span className="ml-3 text-gray-400">Loading documents...</span>
+        {/* Recent Documents */}
+        <div className="bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-700">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
+            <h2 className="text-lg sm:text-xl font-bold">Recent Documents</h2>
+            
+            {/* Mobile Search & Filter */}
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="relative flex-1 sm:flex-none">
+                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-8 sm:pl-10 pr-3 sm:pr-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-blue-500 focus:outline-none text-white placeholder-gray-400 text-sm sm:text-base w-full sm:w-auto"
+                />
+              </div>
+              
+              <button
+                onClick={() => setShowMobileFilter(!showMobileFilter)}
+                className="sm:hidden p-2 bg-gray-700 rounded-lg"
+              >
+                <Filter size={16} />
+              </button>
+              
+              <button
+                onClick={() => handleNavigation('/documents')}
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium whitespace-nowrap"
+              >
+                View All
+              </button>
+            </div>
           </div>
-        ) : filteredDocuments.length === 0 ? (
-          <div className="text-center py-12">
-            <FileText size={48} className="mx-auto mb-4 text-gray-400" />
-            <p className="text-gray-400 mb-2">
-              {searchTerm ? "No documents match your search" : "No documents found"}
-            </p>
-            <p className="text-sm text-gray-500">
-              {searchTerm ? "Try adjusting your search terms" : "Upload some documents to get started"}
-            </p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-700">
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">Document</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">Type</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">Company</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">Date</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">Size</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-300">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredDocuments.map((doc) => (
-                  <tr key={doc.id} className="border-b border-gray-700/50 hover:bg-gray-700/30">
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-3">
-                        <FileText size={20} className="text-blue-400" />
-                        <div>
-                          <p className="font-medium text-white truncate max-w-[200px]">
-                            {doc.title || doc.file?.filename || 'Untitled Document'}
-                          </p>
-                          {doc.description_text && (
-                            <p className="text-sm text-gray-400 truncate max-w-[200px]">
-                              {doc.description_text}
-                            </p>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-8 sm:py-12">
+                <RefreshCw size={24} className="animate-spin text-gray-400" />
+            </div>
+          ) : filteredDocuments.length === 0 ? (
+            <div className="text-center py-8 sm:py-12">
+              <FileText size={32} className="mx-auto mb-4 text-gray-400" />
+              <p className="text-gray-400 text-sm sm:text-base">
+                {searchTerm ? "No documents match your search" : "No documents found. Upload some files to get started!"}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3 sm:space-y-4">
+              {filteredDocuments.slice(0, 5).map((doc) => (
+                <div key={doc.id} className="bg-gray-700 p-3 sm:p-4 rounded-lg hover:bg-gray-600 transition-colors">
+                  <div className="flex items-center justify-between gap-2 sm:gap-4">
+                    <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                      <div className="flex-shrink-0">
+                        {doc.type === 'resume' && <FileText size={16} className="text-blue-400" />}
+                        {doc.type === 'job_description' && <FileText size={16} className="text-green-400" />}
+                        {doc.type === 'generated' && <Activity size={16} className="text-purple-400" />}
+                      </div>
+                      
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-medium text-sm sm:text-base truncate">
+                          {doc.title || doc.file?.filename || 'Untitled Document'}
+                        </h3>
+                        <div className="flex items-center gap-2 sm:gap-4 mt-1">
+                          <span className="text-xs text-gray-400">
+                            {doc.company && `${doc.company} • `}
+                            {doc.created_at && new Date(doc.created_at).toLocaleDateString()}
+                          </span>
+                          {doc.size && (
+                            <span className="text-xs text-gray-400">
+                              {(doc.size / 1024).toFixed(1)} KB
+                            </span>
                           )}
                         </div>
                       </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        doc.type === 'resume' ? 'bg-blue-900 text-blue-200' :
-                        doc.type === 'job_description' ? 'bg-green-900 text-green-200' :
-                        doc.type === 'cover_letter' ? 'bg-purple-900 text-purple-200' :
-                        'bg-gray-700 text-gray-300'
-                      }`}>
-                        {doc.type ? doc.type.replace('_', ' ').toUpperCase() : 'DOCUMENT'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-gray-300">
-                        {doc.company || '-'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-1 text-gray-400">
-                        <Calendar size={14} />
-                        <span className="text-sm">
-                          {doc.created_at || doc.upload_timestamp ? 
-                            new Date(doc.created_at || doc.upload_timestamp!).toLocaleDateString() : 
-                            'Unknown'
-                          }
-                        </span>
-                      </div>
-                    </td>
-                    <td className="py-4 px-4">
-                      <span className="text-sm text-gray-400">
-                        {doc.size ? `${(doc.size / 1024).toFixed(1)} KB` : '-'}
-                      </span>
-                    </td>
-                    <td className="py-4 px-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleDocumentEdit(doc.id)}
-                          className="text-blue-400 hover:text-blue-300 p-1 rounded hover:bg-gray-600/50"
-                          title="View document"
-                        >
-                          <Eye size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDocumentEdit(doc.id)}
-                          className="text-green-400 hover:text-green-300 p-1 rounded hover:bg-gray-600/50"
-                          title="Edit document"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        {doc.type === 'generated' && (
-                          <button
-                            onClick={() => handleDocumentDownload(doc.id)}
-                            className="text-purple-400 hover:text-purple-300 p-1 rounded hover:bg-gray-600/50"
-                            title="Download document"
-                          >
-                            <Download size={16} />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDocumentDelete(doc.id)}
-                          className="text-red-400 hover:text-red-300 p-1 rounded hover:bg-gray-600/50"
-                          title="Delete document"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Document Categories */}
-      {auth.isAuthenticated && (
-        <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Resumes */}
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-blue-400">Resumes</h3>
-              <span className="bg-blue-900 text-blue-200 px-2 py-1 rounded-full text-xs">
-                {resumes.length}
-              </span>
-            </div>
-            <div className="space-y-3">
-              {resumes.slice(0, 3).map((resume) => (
-                <div key={resume.id} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <FileText size={16} className="text-blue-400" />
-                    <span className="text-sm truncate max-w-[150px]">
-                      {resume.title || resume.file?.filename || 'Untitled Resume'}
-                    </span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => console.log(`View document: ${doc.id}`)}
+                        className="p-1.5 sm:p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-600 rounded transition-colors"
+                        title="View document"
+                      >
+                        <Eye size={14} />
+                      </button>
+                      
+                      <button
+                        onClick={() => handleDocumentEdit(doc.id)}
+                        className="p-1.5 sm:p-2 text-gray-400 hover:text-yellow-400 hover:bg-gray-600 rounded transition-colors"
+                        title="Edit document"
+                      >
+                        <Edit size={14} />
+                      </button>
+                      
+                      <button
+                        onClick={() => handleDocumentDownload(doc.id)}
+                        className="p-1.5 sm:p-2 text-gray-400 hover:text-green-400 hover:bg-gray-600 rounded transition-colors"
+                        title="Download document"
+                      >
+                        <Download size={14} />
+                      </button>
+                      
+                      <button
+                        onClick={() => handleDocumentDelete(doc.id)}
+                        className="p-1.5 sm:p-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded transition-colors"
+                        title="Delete document"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    onClick={() => handleDocumentEdit(resume.id)}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    <Eye size={14} />
-                  </button>
                 </div>
               ))}
-              {resumes.length === 0 && (
-                <p className="text-gray-400 text-sm py-4 text-center">No resumes uploaded yet</p>
-              )}
-              {resumes.length > 3 && (
-                <button
-                  onClick={() => handleNavigation('/documents?filter=resumes')}
-                  className="w-full text-blue-400 hover:text-blue-300 text-sm py-2"
-                >
-                  View all {resumes.length} resumes
-                </button>
-              )}
             </div>
+          )}
+        </div>
+
+        {/* Mobile Filter Modal */}
+        {showMobileFilter && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end justify-center z-40 sm:hidden">
+            <div className="bg-gray-800 w-full max-w-md rounded-t-xl p-4">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-semibold">Filter Documents</h3>
+                <button onClick={() => setShowMobileFilter(false)}>
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Document Type</label>
+                  <select className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none">
+                    <option value="">All Types</option>
+                    <option value="resume">Resumes</option>
+                    <option value="job_description">Job Descriptions</option>
+                    <option value="generated">Generated Documents</option>
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-2">Date Range</label>
+                  <select className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none">
+                    <option value="">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                  </select>
+                </div>
+                
+                <div className="flex gap-2 pt-4">
+                  <button
+                    onClick={() => setShowMobileFilter(false)}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 py-3 rounded"
+                  >
+                    Apply Filters
+                  </button>
+                  <button
+                    onClick={() => setShowMobileFilter(false)}
+                    className="flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded"
+                  >
+                    Clear
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Document Categories */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mt-6 sm:mt-8">
+          {/* Resumes */}
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-blue-400">Resumes</h3>
+              <span className="text-xs sm:text-sm text-gray-400">{resumes.length} files</span>
+            </div>
+            
+            {resumes.length === 0 ? (
+              <p className="text-gray-400 text-xs sm:text-sm">No resumes uploaded yet</p>
+            ) : (
+              <div className="space-y-2 sm:space-y-3">
+                {resumes.slice(0, 3).map((resume) => (
+                  <div key={resume.id} className="flex items-center justify-between p-2 sm:p-3 bg-gray-700 rounded-lg">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm font-medium truncate">{resume.title || resume.file?.filename || 'Untitled Resume'}</p>
+                      <p className="text-xs text-gray-400">{resume.company}</p>
+                    </div>
+                    <div className="flex gap-1 ml-2">
+                      <button
+                        onClick={() => console.log(`View resume: ${resume.id}`)}
+                        className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
+                      >
+                        <Eye size={12} />
+                      </button>
+                      <button
+                        onClick={() => handleDocumentEdit(resume.id)}
+                        className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
+                      >
+                        <Edit size={12} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {resumes.length > 3 && (
+                  <button
+                    onClick={() => handleNavigation('/documents?type=resume')}
+                    className="w-full text-xs sm:text-sm text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    View all {resumes.length} resumes
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Job Descriptions */}
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-700">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-green-400">Job Descriptions</h3>
-              <span className="bg-green-900 text-green-200 px-2 py-1 rounded-full text-xs">
-                {jobDescriptions.length}
-              </span>
+              <h3 className="text-base sm:text-lg font-semibold text-green-400">Job Descriptions</h3>
+              <span className="text-xs sm:text-sm text-gray-400">{jobDescriptions.length} files</span>
             </div>
-            <div className="space-y-3">
-              {jobDescriptions.slice(0, 3).map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Users size={16} className="text-green-400" />
-                    <div>
-                      <p className="text-sm truncate max-w-[120px]">
-                        {job.title || 'Untitled Job'}
-                      </p>
-                      {job.company && (
-                        <p className="text-xs text-gray-400 truncate max-w-[120px]">
-                          {job.company}
-                        </p>
-                      )}
+            
+            {jobDescriptions.length === 0 ? (
+              <p className="text-gray-400 text-xs sm:text-sm">No job descriptions uploaded yet</p>
+            ) : (
+              <div className="space-y-2 sm:space-y-3">
+                {jobDescriptions.slice(0, 3).map((job) => (
+                  <div key={job.id} className="flex items-center justify-between p-2 sm:p-3 bg-gray-700 rounded-lg">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm font-medium truncate">{job.title}</p>
+                      <p className="text-xs text-gray-400">{job.company}</p>
+                    </div>
+                    <div className="flex gap-1 ml-2">
+                      <button
+                        onClick={() => console.log(`View job: ${job.id}`)}
+                        className="p-1 text-gray-400 hover:text-green-400 transition-colors"
+                      >
+                        <Eye size={12} />
+                      </button>
+                      <button
+                        onClick={() => handleDocumentEdit(job.id)}
+                        className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
+                      >
+                        <Edit size={12} />
+                      </button>
                     </div>
                   </div>
+                ))}
+                {jobDescriptions.length > 3 && (
                   <button
-                    onClick={() => handleDocumentEdit(job.id)}
-                    className="text-gray-400 hover:text-white"
+                    onClick={() => handleNavigation('/documents?type=job_description')}
+                    className="w-full text-xs sm:text-sm text-green-400 hover:text-green-300 p-2 rounded-lg hover:bg-gray-700 transition-colors"
                   >
-                    <Eye size={14} />
+                    View all {jobDescriptions.length} job descriptions
                   </button>
-                </div>
-              ))}
-              {jobDescriptions.length === 0 && (
-                <p className="text-gray-400 text-sm py-4 text-center">No job descriptions yet</p>
-              )}
-              {jobDescriptions.length > 3 && (
-                <button
-                  onClick={() => handleNavigation('/documents?filter=jobs')}
-                  className="w-full text-green-400 hover:text-green-300 text-sm py-2"
-                >
-                  View all {jobDescriptions.length} jobs
-                </button>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Generated Documents */}
-          <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
+          <div className="bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-700">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-purple-400">Generated Documents</h3>
-              <span className="bg-purple-900 text-purple-200 px-2 py-1 rounded-full text-xs">
-                {generatedDocs.length}
-              </span>
+              <h3 className="text-base sm:text-lg font-semibold text-purple-400">Generated</h3>
+              <span className="text-xs sm:text-sm text-gray-400">{generatedDocs.length} files</span>
             </div>
-            <div className="space-y-3">
-              {generatedDocs.slice(0, 3).map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <Activity size={16} className="text-purple-400" />
-                    <div>
-                      <p className="text-sm truncate max-w-[120px]">
-                        {doc.title || 'Generated Document'}
+            
+            {generatedDocs.length === 0 ? (
+              <p className="text-gray-400 text-xs sm:text-sm">No generated documents yet</p>
+            ) : (
+              <div className="space-y-2 sm:space-y-3">
+                {generatedDocs.slice(0, 3).map((doc) => (
+                  <div key={doc.id} className="flex items-center justify-between p-2 sm:p-3 bg-gray-700 rounded-lg">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm font-medium truncate">{doc.title || 'Generated Document'}</p>
+                      <p className="text-xs text-gray-400">
+                        {doc.created_at && new Date(doc.created_at).toLocaleDateString()}
                       </p>
-                      {doc.type && (
-                        <p className="text-xs text-gray-400">
-                          {doc.type.toUpperCase()}
-                        </p>
-                      )}
+                    </div>
+                    <div className="flex gap-1 ml-2">
+                      <button
+                        onClick={() => console.log(`View generated: ${doc.id}`)}
+                        className="p-1 text-gray-400 hover:text-purple-400 transition-colors"
+                      >
+                        <Eye size={12} />
+                      </button>
+                      <button
+                        onClick={() => handleDocumentDownload(doc.id)}
+                        className="p-1 text-gray-400 hover:text-green-400 transition-colors"
+                      >
+                        <Download size={12} />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => handleDocumentDownload(doc.id)}
-                      className="text-gray-400 hover:text-white"
-                      title="Download"
-                    >
-                      <Download size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleDocumentEdit(doc.id)}
-                      className="text-gray-400 hover:text-white"
-                      title="View"
-                    >
-                      <Eye size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {generatedDocs.length === 0 && (
-                <p className="text-gray-400 text-sm py-4 text-center">No generated documents yet</p>
-              )}
-              {generatedDocs.length > 3 && (
-                <button
-                  onClick={() => handleNavigation('/documents?filter=generated')}
-                  className="w-full text-purple-400 hover:text-purple-300 text-sm py-2"
-                >
-                  View all {generatedDocs.length} documents
-                </button>
-              )}
-            </div>
+                ))}
+                {generatedDocs.length > 3 && (
+                  <button
+                    onClick={() => handleNavigation('/documents?type=generated')}
+                    className="w-full text-xs sm:text-sm text-purple-400 hover:text-purple-300 p-2 rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    View all {generatedDocs.length} generated documents
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      )}
 
-      {/* Footer */}
-      <div className="mt-12 pt-8 border-t border-gray-700">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
-          <p>© 2024 WeApply Dashboard. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <span>Version 1.0.0</span>
-            {/*
-            <span>•</span>
-             Footer Links
-            <button
-              onClick={() => handleNavigation('/help')}
-              className="hover:text-white transition-colors"
-            >
-              Help & Support
-            </button>
-            */}
+        {/* Footer */}
+        <div className="mt-12 pt-8 border-t border-gray-700">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
+            <p>© 2024 WeApply Dashboard. All rights reserved.</p>
+            <div className="flex items-center gap-4">
+              <span>Version 1.0.0</span>
+              {/*
+              <span>•</span>
+              Footer Links
+              <button
+                onClick={() => handleNavigation('/help')}
+                className="hover:text-white transition-colors"
+              >
+                Help & Support
+              </button>
+              */}
+            </div>
           </div>
         </div>
       </div>
