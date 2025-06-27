@@ -79,10 +79,6 @@ export default function DashboardPage() {
 
   // Authentication state
   const [auth, setAuth] = useState<AuthState>({ token: null, isAuthenticated: false });
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authForm, setAuthForm] = useState({ email: "", password: "", apiKey: "" });
-  const [authMode, setAuthMode] = useState<'login' | 'apikey'>('login');
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showMobileFilter, setShowMobileFilter] = useState(false);
 
   const fileInput = useRef<HTMLInputElement>(null);
@@ -118,36 +114,7 @@ export default function DashboardPage() {
   }, []);
 
   // Authentication functions
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await fetch("https://weapply.onrender.com/api/v1/users/login", {
-        method: "POST",
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Login failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const token = data.token || data.access_token || data.accessToken;
-      
-      if (!token) throw new Error("No authentication token received");
-
-      localStorage.setItem('access_token', token);
-      if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
-
-      setAuth({ token, isAuthenticated: true, user: data.user });
-      setShowAuthModal(false);
-      setSuccessMessage("Successfully logged in!");
-      return true;
-    } catch (error: any) {
-      setError(`Login failed: ${error.message}`);
-      return false;
-    }
-  };
 
   const setApiKey = (apiKey: string) => {
     if (!apiKey.trim()) {
@@ -157,7 +124,6 @@ export default function DashboardPage() {
 
     localStorage.setItem('weapply_token', apiKey);
     setAuth({ token: apiKey, isAuthenticated: true, user: { type: 'api_key' } });
-    setShowAuthModal(false);
     setSuccessMessage("API key set successfully!");
     return true;
   };
@@ -211,7 +177,6 @@ export default function DashboardPage() {
         localStorage.removeItem('weapply_token');
         localStorage.removeItem('user');
         setError("Authentication failed. Please log in again.");
-        setShowAuthModal(true);
         throw new Error("Authentication required");
       }
 
@@ -237,7 +202,6 @@ export default function DashboardPage() {
 
     if (!auth.isAuthenticated) {
       setError("Please log in to access your documents.");
-      setShowAuthModal(true);
       return;
     }
 
@@ -336,7 +300,6 @@ export default function DashboardPage() {
 
     if (!auth.isAuthenticated) {
       setError("Please log in to upload files.");
-      setShowAuthModal(true);
       return;
     }
 
@@ -430,7 +393,6 @@ export default function DashboardPage() {
   const handleNavigation = (path: string) => {
     router.push(path);
     if (window.innerWidth < 1024) {
-      setShowMobileMenu(false);
       setShowMobileFilter(false);
     }
   };
@@ -500,119 +462,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      {/* Authentication Modal */}
-      {showAuthModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 max-w-md w-full mx-4">
-            <h2 className="text-lg sm:text-xl font-bold mb-4">Authentication Required</h2>
-            
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={() => setAuthMode('login')}
-                className={`flex-1 py-2 px-3 sm:px-4 rounded text-sm sm:text-base ${authMode === 'login' ? 'bg-blue-600' : 'bg-gray-700'}`}
-              >
-                Login
-              </button>
-              <button
-                onClick={() => setAuthMode('apikey')}
-                className={`flex-1 py-2 px-3 sm:px-4 rounded text-sm sm:text-base ${authMode === 'apikey' ? 'bg-blue-600' : 'bg-gray-700'}`}
-              >
-                API Key
-              </button>
-            </div>
-
-            {authMode === 'login' ? (
-              <div className="space-y-4">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={authForm.email}
-                  onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm sm:text-base"
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={authForm.password}
-                  onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm sm:text-base"
-                />
-                <button
-                  onClick={() => login(authForm.email, authForm.password)}
-                  disabled={loading || !authForm.email || !authForm.password}
-                  className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                >
-                  {loading ? "Logging in..." : "Login"}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <input
-                  type="password"
-                  placeholder="Enter your API Key"
-                  value={authForm.apiKey}
-                  onChange={(e) => setAuthForm({...authForm, apiKey: e.target.value})}
-                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none text-sm sm:text-base"
-                />
-                <p className="text-xs sm:text-sm text-gray-400">
-                  Enter your WeApply API key or JWT token to access the API
-                </p>
-                <button
-                  onClick={() => setApiKey(authForm.apiKey)}
-                  disabled={!authForm.apiKey}
-                  className="w-full bg-green-600 hover:bg-green-700 py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-                >
-                  Set API Key
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={() => setShowAuthModal(false)}
-              className="w-full mt-4 bg-gray-600 hover:bg-gray-700 py-2 rounded text-sm sm:text-base"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Mobile Menu Overlay */}
-      {showMobileMenu && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden" onClick={() => setShowMobileMenu(false)}>
-          <div className="fixed top-0 right-0 h-full w-64 bg-gray-800 p-4 transform transition-transform">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-lg font-semibold">Menu</h3>
-              <button onClick={() => setShowMobileMenu(false)}>
-                <X size={24} />
-              </button>
-            </div>
-            <div className="space-y-4">
-              <button
-                onClick={() => {
-                  handleNavigation('/documents');
-                  setShowMobileMenu(false);
-                }}
-                className="w-full text-left p-3 rounded-lg hover:bg-gray-700 flex items-center gap-3"
-              >
-                <FileText size={20} />
-                <span>Documents</span>
-              </button>
-              <button
-                onClick={() => {
-                  handleNavigation('/generate');
-                  setShowMobileMenu(false);
-                }}
-                className="w-full text-left p-3 rounded-lg hover:bg-gray-700 flex items-center gap-3"
-              >
-                <Activity size={20} />
-                <span>Generate</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="p-3 sm:p-4 md:p-6 lg:p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 sm:mb-8">
@@ -634,29 +483,6 @@ export default function DashboardPage() {
               </div>
             )}
             
-            {auth.isAuthenticated ? (
-              <div className="flex items-center gap-1 sm:gap-2">
-                <span className="text-xs sm:text-sm text-green-400 hidden sm:inline">●</span>
-                <span className="text-xs sm:text-sm text-gray-300 hidden md:inline">Authenticated</span>
-                <button 
-                  onClick={logout}
-                  className="text-gray-400 hover:text-white transition-colors p-1 sm:p-2 rounded-lg hover:bg-gray-800"
-                  title="Logout"
-                >
-                  <LogIn size={16} />
-                </button>
-              </div>
-            ) : (
-              <button 
-                onClick={() => setShowAuthModal(true)}
-                className="flex items-center gap-1 sm:gap-2 text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800"
-                title="Login"
-              >
-                <Key size={16} />
-                <span className="text-xs sm:text-sm hidden sm:inline">Login</span>
-              </button>
-            )}
-            
             <button 
               onClick={loadData} 
               disabled={loading}
@@ -664,13 +490,6 @@ export default function DashboardPage() {
               title="Refresh data"
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            </button>
-
-            <button 
-              onClick={() => setShowMobileMenu(true)}
-              className="lg:hidden text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800"
-            >
-              <Menu size={20} />
             </button>
           </div>
         </div>
@@ -804,7 +623,7 @@ export default function DashboardPage() {
           <h2 className="text-lg sm:text-xl font-bold mb-4 sm:mb-6">Quick Actions</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <button
-              onClick={() => handleNavigation(path.join('/documents', 'resume'))}
+              onClick={() => handleNavigation(path.join('/documents'))}
               className="bg-gray-800 hover:bg-gray-700 p-4 sm:p-6 rounded-xl transition-all duration-300 hover:scale-105 border border-gray-700 hover:border-blue-500 text-left"
             >
               <FileText size={24} className="text-blue-400 mb-2 sm:mb-3" />

@@ -45,7 +45,7 @@ export default function Sidebar({ isOpen, setIsOpen, onLogout, user }: SidebarPr
         />
       )}
       
-      <div className={`fixed left-0 top-0 z-30 w-70 h-full bg-gray-800 transform transition-transform duration-300 lg:translate-x-0 lg:static lg:z-auto ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <div className={`fixed left-0 top-0 z-30 w-70 h-full bg-gray-800 transform transition-transform duration-300 lg:translate-x-0 lg:static lg:h-[100vh] lg:z-auto ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col h-full">
           <div className="p-4 border-b border-gray-700">
             <div className="flex items-center space-x-3">

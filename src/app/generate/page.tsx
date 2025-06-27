@@ -15,8 +15,6 @@ import {
   Eye,
   Clock,
   X,
-  Play,
-  Pause,
   FileEdit,
   MessageSquare,
   User,
@@ -49,7 +47,7 @@ interface JobDescription {
 interface GeneratedDocument {
   id: number;
   type?: string;
-  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  status?: string;
   content?: string | null;
   error_message?: string | null;
   file?: {
@@ -69,13 +67,15 @@ interface AuthState {
 }
 
 interface GenerationRequest {
-  type: 'rewrite-resume' | 'cover-letter' | 'tailor-resume' | 'interview-questions';
-  resumeId: number;
-  jobDescriptionId?: number;
-  status: 'idle' | 'processing' | 'completed' | 'failed';
+  id: number;
+  type: string | 'rewrite-resume' | 'cover-letter' | 'tailor-resume' | 'interview-questions';
+  source_resume_id?: number;
+  source_job_description_id?: number | undefined;
+  content?: string;
+  status?: string | 'idle' | 'processing' | 'completed' | 'failed';
   progress: number;
   result?: GeneratedDocument;
-  error?: string;
+  error_message?: string;
 }
 
 export default function GeneratePage() {
@@ -86,7 +86,7 @@ export default function GeneratePage() {
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [isOnline, setIsOnline] = useState(true);
-  
+    
   // Authentication state
   const [auth, setAuth] = useState<AuthState>({ token: null, isAuthenticated: false });
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -379,9 +379,11 @@ export default function GeneratePage() {
 
     // Initialize generation request
     const generationRequest: GenerationRequest = {
+      id: Date.now(), 
       type,
-      resumeId: selectedResume,
-      jobDescriptionId: selectedJobDescription || undefined,
+      source_resume_id: selectedResume,
+      source_job_description_id: selectedJobDescription || undefined,
+      content: "",
       status: 'processing',
       progress: 0,
     };
@@ -392,34 +394,22 @@ export default function GeneratePage() {
       let endpoint: string;
       let body: any = {};
 
-      switch (type) {
-        case 'rewrite-resume':
-          endpoint = `${API_BASE_URL}/documents/process/rewrite-resume/${selectedResume}`;
-          break;
-        case 'cover-letter':
-          endpoint = `${API_BASE_URL}/documents/process/cover-letter/`;
-          body = {
-            resume_id: selectedResume,
-            job_description_id: selectedJobDescription
-          };
-          break;
-        case 'tailor-resume':
-          endpoint = `${API_BASE_URL}/documents/process/tailor-resume/`;
-          body = {
-            resume_id: selectedResume,
-            job_description_id: selectedJobDescription
-          };
-          break;
-        case 'interview-questions':
-          endpoint = `${API_BASE_URL}/documents/process/interview-questions/`;
-          body = {
-            resume_id: selectedResume,
-            job_description_id: selectedJobDescription
-          };
-          break;
-        default:
-          throw new Error(`Unknown generation type: ${type}`);
-      }
+    switch (type) {
+      case 'rewrite-resume':
+        endpoint = `${API_BASE_URL}/documents/process/rewrite-resume/${selectedResume}`;
+        break;
+      case 'cover-letter':
+        endpoint = `${API_BASE_URL}/documents/process/cover-letter/?resume_id=${selectedResume}&job_description_id=${selectedJobDescription}`;
+        break;
+      case 'tailor-resume':
+        endpoint = `${API_BASE_URL}/documents/process/tailor-resume/?resume_id=${selectedResume}&job_description_id=${selectedJobDescription}`;
+        break;
+      case 'interview-questions':
+        endpoint = `${API_BASE_URL}/documents/process/interview-questions/?resume_id=${selectedResume}&job_description_id=${selectedJobDescription}`;
+        break;
+      default:
+        throw new Error(`Unknown generation type: ${type}`);
+    }
 
       // Update progress
       setActiveGenerations(prev => {
@@ -500,7 +490,7 @@ export default function GeneratePage() {
         const request = newMap.get(requestId);
         if (request) {
           request.status = 'failed';
-          request.error = error.message;
+          request.error_message = error.message;
           newMap.set(requestId, request);
         }
         return newMap;
@@ -1058,8 +1048,8 @@ export default function GeneratePage() {
                         />
                       </div>
                       
-                      {generation.error && (
-                        <p className="text-sm text-red-400 mt-1">{generation.error}</p>
+                      {generation.error_message && (
+                        <p className="text-sm text-red-400 mt-1">{generation.error_message}</p>
                       )}
                     </div>
                   ))}
@@ -1166,6 +1156,26 @@ export default function GeneratePage() {
           </div>
         </div>
       )}
+
+      {/* Footer */}
+      <div className="mt-12 pt-8 border-t border-gray-700">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-400">
+          <p>© 2024 WeApply Dashboard. All rights reserved.</p>
+          <div className="flex items-center gap-4">
+            <span>Version 1.0.0</span>
+            {/*
+            <span>•</span>
+            Footer Links
+            <button
+              onClick={() => handleNavigation('/help')}
+              className="hover:text-white transition-colors"
+            >
+              Help & Support
+            </button>
+            */}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
