@@ -6,6 +6,7 @@ import { User } from '../../lib/data';
 
 interface AuthContextType {
   user: User | null;
+  loading: boolean;
   isLoading: boolean;
   signIn: (userData: User, token: string) => void;
   signOut: () => void;
@@ -83,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{ 
       user, 
       isLoading, 
+      loading: isLoading,
       signIn, 
       signOut, 
       isAuthenticated 
