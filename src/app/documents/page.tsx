@@ -70,12 +70,30 @@ export default function DocumentManagementPage() {
   const [isOnline, setIsOnline] = useState(true);
   const [retryCount, setRetryCount] = useState(0);
   const [successMessage, setSuccessMessage] = useState("");
+  const [isFadingOut, setIsFadingOut] = useState(false);
   
+  // Handle success message fade out
+  useEffect(() => {
+    if (successMessage) {
+      const fadeTimer = setTimeout(() => {
+        setIsFadingOut(true); // start fade out
+      }, 4000); // fade starts at 4s
+
+      const removeTimer = setTimeout(() => {
+        dismissMessage('success'); // remove message
+        setIsFadingOut(false); // reset for future messages
+      }, 5000); // removed at 5s
+
+      return () => {
+        clearTimeout(fadeTimer);
+        clearTimeout(removeTimer);
+      };
+    }
+  }, [successMessage]);
+
+
   // Authentication state
   const [auth, setAuth] = useState<AuthState>({ token: null, isAuthenticated: false });
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authForm, setAuthForm] = useState({ email: "", password: "", apiKey: "" });
-  const [authMode, setAuthMode] = useState<'login' | 'apikey'>('login');
 
   const fileInput = useRef<HTMLInputElement>(null);
   const maxRetries = 3;
@@ -109,80 +127,6 @@ export default function DocumentManagementPage() {
     };
   }, []);
 
-  // Authentication functions
-  const login = async (email: string, password: string) => {
-    try {
-      const response = await fetch("https://weapply.onrender.com/api/v1/users/login", {
-        method: "POST",
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Login failed: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      const token = data.token || data.access_token || data.accessToken;
-      
-      if (!token) {
-        throw new Error("No authentication token received");
-      }
-
-      // Save auth data
-      localStorage.setItem('access_token', token);
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
-      }
-
-      setAuth({
-        token,
-        isAuthenticated: true,
-        user: data.user
-      });
-
-      setShowAuthModal(false);
-      setSuccessMessage("Successfully logged in!");
-      return true;
-    } catch (error: any) {
-      console.error('Login error:', error);
-      setError(`Login failed: ${error.message}`);
-      return false;
-    }
-  };
-
-  const setApiKey = (apiKey: string) => {
-    if (!apiKey.trim()) {
-      setError("Please enter a valid API key");
-      return false;
-    }
-
-    // Save API key as token
-    localStorage.setItem('weapply_token', apiKey);
-    
-    setAuth({
-      token: apiKey,
-      isAuthenticated: true,
-      user: { type: 'api_key' }
-    });
-
-    setShowAuthModal(false);
-    setSuccessMessage("API key set successfully!");
-    return true;
-  };
-
-  const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('user');
-    setAuth({ token: null, isAuthenticated: false });
-    setResumes([]);
-    setJobDescriptions([]);
-    setGeneratedDocs([]);
-    setSuccessMessage("Logged out successfully");
-  };
 
   // Enhanced API request with authentication
   const apiRequest = async (url: string, options: RequestInit = {}, retries = 0): Promise<Response> => {
@@ -229,7 +173,6 @@ export default function DocumentManagementPage() {
         localStorage.removeItem('access_token');
         localStorage.removeItem('user');
         setError("Authentication failed. Please log in again.");
-        setShowAuthModal(true);
         throw new Error("Authentication required");
       }
 
@@ -296,7 +239,6 @@ export default function DocumentManagementPage() {
 
     if (!auth.isAuthenticated) {
       setError("Please log in to access your documents.");
-      setShowAuthModal(true);
       return;
     }
 
@@ -381,7 +323,6 @@ export default function DocumentManagementPage() {
 
     if (!auth.isAuthenticated) {
       setError("Please log in to upload files.");
-      setShowAuthModal(true);
       return;
     }
 
@@ -500,7 +441,6 @@ export default function DocumentManagementPage() {
 
     if (!auth.isAuthenticated) {
       setError("Please log in to create job descriptions.");
-      setShowAuthModal(true);
       return;
     }
     
@@ -555,7 +495,6 @@ export default function DocumentManagementPage() {
 
     if (!auth.isAuthenticated) {
       setError("Please log in to download documents.");
-      setShowAuthModal(true);
       return;
     }
 
@@ -599,7 +538,6 @@ export default function DocumentManagementPage() {
 
     if (!auth.isAuthenticated) {
       setError("Please log in to save changes.");
-      setShowAuthModal(true);
       return;
     }
 
@@ -667,125 +605,15 @@ export default function DocumentManagementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 md:p-8">
-      {/* Authentication Modal */}
-      {showAuthModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold mb-4">Authentication Required</h2>
-            
-            <div className="flex gap-2 mb-4">
-              <button
-                onClick={() => setAuthMode('login')}
-                className={`flex-1 py-2 px-4 rounded ${authMode === 'login' ? 'bg-blue-600' : 'bg-gray-700'}`}
-              >
-                Login
-              </button>
-              <button
-                onClick={() => setAuthMode('apikey')}
-                className={`flex-1 py-2 px-4 rounded ${authMode === 'apikey' ? 'bg-blue-600' : 'bg-gray-700'}`}
-              >
-                API Key
-              </button>
-            </div>
-
-            {authMode === 'login' ? (
-              <div className="space-y-4">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={authForm.email}
-                  onChange={(e) => setAuthForm({...authForm, email: e.target.value})}
-                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-                />
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={authForm.password}
-                  onChange={(e) => setAuthForm({...authForm, password: e.target.value})}
-                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-                />
-                <button
-                  onClick={() => login(authForm.email, authForm.password)}
-                  disabled={loading || !authForm.email || !authForm.password}
-                  className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? "Logging in..." : "Login"}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <input
-                  type="password"
-                  placeholder="Enter your API Key"
-                  value={authForm.apiKey}
-                  onChange={(e) => setAuthForm({...authForm, apiKey: e.target.value})}
-                  className="w-full bg-gray-700 p-3 rounded border border-gray-600 focus:border-blue-500 focus:outline-none"
-                />
-                <p className="text-sm text-gray-400">
-                  Enter your WeApply API key or JWT token to access the API
-                </p>
-                <button
-                  onClick={() => setApiKey(authForm.apiKey)}
-                  disabled={!authForm.apiKey}
-                  className="w-full bg-green-600 hover:bg-green-700 py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Set API Key
-                </button>
-              </div>
-            )}
-
-            <button
-              onClick={() => setShowAuthModal(false)}
-              className="w-full mt-4 bg-gray-600 hover:bg-gray-700 py-2 rounded"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-
+    <div className="min-h-screen bg-gray-900 text-white p-4 sm:p-6 md:p-8 lg:pl-80">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-4">
-          <button onClick={() => window.history.back()} className="text-gray-400 hover:text-white transition-colors">
-            <ArrowLeft size={24} />
-          </button>
           <h1 className="text-2xl sm:text-3xl font-bold">Document Management</h1>
         </div>
         
         {/* Network Status & Auth */}
         <div className="flex items-center gap-3">
-          {!isOnline && (
-            <div className="flex items-center gap-2 text-red-400">
-              <WifiOff size={20} />
-              <span className="text-sm">Offline</span>
-            </div>
-          )}
-          
-          {auth.isAuthenticated ? (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-green-400">●</span>
-              <span className="text-sm text-gray-300">Authenticated</span>
-              <button 
-                onClick={logout}
-                className="text-gray-400 hover:text-white transition-colors p-1"
-                title="Logout"
-              >
-                <LogIn size={16} />
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setShowAuthModal(true)}
-              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-gray-800"
-              title="Login"
-            >
-              <Key size={20} />
-              <span className="text-sm">Login</span>
-            </button>
-          )}
-          
           <button 
             onClick={loadData} 
             disabled={loading}
@@ -799,19 +627,18 @@ export default function DocumentManagementPage() {
 
       {/* Success Message */}
       {successMessage && (
-        <div className="mb-6 bg-green-900/50 border border-green-700 p-4 rounded-lg flex items-center justify-between">
+        <div
+          className={`mb-6 bg-green-900/50 border border-green-700 p-4 rounded-lg flex items-center justify-between transition-opacity duration-1000 ${
+            isFadingOut ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
           <div className="flex items-center gap-2">
             <CheckCircle size={20} className="text-green-400" />
             <span>{successMessage}</span>
           </div>
-          <button 
-            onClick={() => dismissMessage('success')}
-            className="text-green-400 hover:text-green-300"
-          >
-            <X size={16} />
-          </button>
         </div>
       )}
+
 
       {/* Error Message */}
       {error && (
@@ -1002,13 +829,13 @@ export default function DocumentManagementPage() {
         {activeTab === "jobs" && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
+              <h2 className=" text-[13px] md:text-xl font-semibold flex items-center gap-2">
                 <FileText size={24} />
                 Job Descriptions ({filtered(jobDescriptions).length})
               </h2>
               <button
                 onClick={() => setShowJobForm(true)}
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition-colors"
+                className="flex items-center gap-0 md:gap-2 bg-blue-600 hover:bg-blue-700 px-1 py-1 text-[10px] md:text-[16px] md:px-4 md:py-2 rounded transition-colors"
               >
                 <Plus size={16} />
                 Add Job Description
@@ -1173,7 +1000,7 @@ export default function DocumentManagementPage() {
             {selectedDocument ? (
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold">
+                  <h2 className="text-[14px] md:text-xl font-semibold">
                     {selectedDocument.title || selectedDocument.file?.filename || "Document Viewer"}
                   </h2>
                   <div className="flex gap-2">
@@ -1186,14 +1013,14 @@ export default function DocumentManagementPage() {
                             setIsEditing(true);
                             setEditContent(getDocumentContent(selectedDocument));
                           }}
-                          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition-colors"
+                          className="px-[10px] py-1 text-[10px] md:text-[16px] md:px-4 md:py-2 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition-colors"
                         >
                           <Edit size={16} />
                           Edit
                         </button>
                         <button
                           onClick={() => downloadDoc(selectedDocument.id.toString(), 'generated')}
-                          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors"
+                          className="px-[10px] py-1 text-[10px] md:text-[16px] md:px-4 md:py-2 flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors"
                         >
                           <Download size={16} />
                           Download

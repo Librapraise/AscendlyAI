@@ -77,6 +77,28 @@ export default function DashboardPage() {
     activeJobs: 0
   });
 
+    // State for fade out effect
+    const [isFadingOut, setIsFadingOut] = useState(false);
+    
+    // Handle success message fade out
+    useEffect(() => {
+      if (successMessage) {
+        const fadeTimer = setTimeout(() => {
+          setIsFadingOut(true); // start fade out
+        }, 4000); // fade starts at 4s
+  
+        const removeTimer = setTimeout(() => {
+          dismissMessage('success'); // remove message
+          setIsFadingOut(false); // reset for future messages
+        }, 5000); // removed at 5s
+  
+        return () => {
+          clearTimeout(fadeTimer);
+          clearTimeout(removeTimer);
+        };
+      }
+    }, [successMessage]);
+
   // Authentication state
   const [auth, setAuth] = useState<AuthState>({ token: null, isAuthenticated: false });
   const [showMobileFilter, setShowMobileFilter] = useState(false);
@@ -113,32 +135,6 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // Authentication functions
-
-
-  const setApiKey = (apiKey: string) => {
-    if (!apiKey.trim()) {
-      setError("Please enter a valid API key");
-      return false;
-    }
-
-    localStorage.setItem('weapply_token', apiKey);
-    setAuth({ token: apiKey, isAuthenticated: true, user: { type: 'api_key' } });
-    setSuccessMessage("API key set successfully!");
-    return true;
-  };
-
-  const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('weapply_token');
-    localStorage.removeItem('user');
-    setAuth({ token: null, isAuthenticated: false });
-    setDocuments([]);
-    setResumes([]);
-    setJobDescriptions([]);
-    setGeneratedDocs([]);
-    setSuccessMessage("Logged out successfully");
-  };
 
   // Enhanced API request with authentication
   const apiRequest = async (url: string, options: RequestInit = {}, retries = 0): Promise<Response> => {
@@ -461,7 +457,7 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-gray-900 text-white lg:pl-72">
       <div className="p-3 sm:p-4 md:p-6 lg:p-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 sm:mb-8">
@@ -476,13 +472,6 @@ export default function DashboardPage() {
           
           {/* Header Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
-            {!isOnline && (
-              <div className="flex items-center gap-1 sm:gap-2 text-red-400">
-                <WifiOff size={16} />
-                <span className="text-xs sm:text-sm hidden sm:inline">Offline</span>
-              </div>
-            )}
-            
             <button 
               onClick={loadData} 
               disabled={loading}
@@ -496,17 +485,15 @@ export default function DashboardPage() {
 
         {/* Success Message */}
         {successMessage && (
-          <div className="mb-4 sm:mb-6 bg-green-900/50 border border-green-700 p-3 sm:p-4 rounded-lg flex items-start justify-between">
-            <div className="flex items-start gap-2 flex-1 min-w-0">
-              <CheckCircle size={16} className="text-green-400 mt-0.5 flex-shrink-0" />
-              <span className="text-sm sm:text-base break-words">{successMessage}</span>
+          <div
+            className={`mb-6 bg-green-900/50 border border-green-700 p-4 rounded-lg flex items-center justify-between transition-opacity duration-1000 ${
+              isFadingOut ? 'opacity-0' : 'opacity-100'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle size={20} className="text-green-400" />
+              <span>{successMessage}</span>
             </div>
-            <button 
-              onClick={() => dismissMessage('success')}
-              className="text-green-400 hover:text-green-300 ml-2 flex-shrink-0"
-            >
-              <X size={16} />
-            </button>
           </div>
         )}
 

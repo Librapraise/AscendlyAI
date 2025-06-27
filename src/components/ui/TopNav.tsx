@@ -40,7 +40,7 @@ export default function TopNav({ onMenuClick, user: userProp }: TopNavProps) {
             <Menu size={20} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-white">{pagePath}</h1>
+            <h1 className="text-2xl font-bold text-white lg:hidden">AscendlyAI</h1>
           </div>
         </div>
         
