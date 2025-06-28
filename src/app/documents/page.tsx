@@ -805,14 +805,14 @@ export default function DocumentManagementPage() {
                     <div className="flex gap-2 ml-4">
                       <button
                         onClick={() => handleDocumentSelect(resume)}
-                        className="p-2 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                        className="cursor-pointer p-2 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
                         title="View"
                       >
                         <Eye size={16} />
                       </button>
                       <button
                         onClick={() => downloadDoc(resume.id.toString(), 'resume')}
-                        className="p-2 bg-green-600 hover:bg-green-700 rounded transition-colors"
+                        className="cursor-pointer p-2 bg-green-600 hover:bg-green-700 rounded transition-colors"
                         title="Download"
                       >
                         <Download size={16} />
@@ -835,7 +835,7 @@ export default function DocumentManagementPage() {
               </h2>
               <button
                 onClick={() => setShowJobForm(true)}
-                className="flex items-center gap-0 md:gap-2 bg-blue-600 hover:bg-blue-700 px-1 py-1 text-[10px] md:text-[16px] md:px-4 md:py-2 rounded transition-colors"
+                className="cursor-pointer flex items-center gap-0 md:gap-2 bg-blue-600 hover:bg-blue-700 px-1 py-1 text-[10px] md:text-[16px] md:px-4 md:py-2 rounded transition-colors"
               >
                 <Plus size={16} />
                 Add Job Description
@@ -874,13 +874,13 @@ export default function DocumentManagementPage() {
                     <button
                       onClick={createJobDesc}
                       disabled={loading}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="cursor-pointer flex-1 bg-blue-600 hover:bg-blue-700 py-3 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {loading ? "Creating..." : "Create Job Description"}
                     </button>
                     <button
                       onClick={() => setShowJobForm(false)}
-                      className="flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded"
+                      className="cursor-pointer flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded"
                     >
                       Cancel
                     </button>
@@ -921,7 +921,7 @@ export default function DocumentManagementPage() {
                     <div className="flex gap-2 ml-4">
                       <button
                         onClick={() => handleDocumentSelect(job)}
-                        className="p-2 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                        className="cursor-pointer cursor-pointer p-2 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
                         title="View"
                       >
                         <Eye size={16} />
@@ -974,14 +974,14 @@ export default function DocumentManagementPage() {
                     <div className="flex gap-2 ml-4">
                       <button
                         onClick={() => handleDocumentSelect(doc)}
-                        className="p-2 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
+                        className="cursor-pointer cursor-pointer cursor-pointer p-2 bg-blue-600 hover:bg-blue-700 rounded transition-colors"
                         title="View"
                       >
                         <Eye size={16} />
                       </button>
                       <button
                         onClick={() => downloadDoc(doc.id.toString())}
-                        className="p-2 bg-green-600 hover:bg-green-700 rounded transition-colors"
+                        className="cursor-pointer cursor-pointer cursor-pointer p-2 bg-green-600 hover:bg-green-700 rounded transition-colors"
                         title="Download"
                       >
                         <Download size={16} />
@@ -1013,14 +1013,14 @@ export default function DocumentManagementPage() {
                             setIsEditing(true);
                             setEditContent(getDocumentContent(selectedDocument));
                           }}
-                          className="px-[10px] py-1 text-[10px] md:text-[16px] md:px-4 md:py-2 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition-colors"
+                          className="cursor-pointer px-[10px] py-1 text-[10px] md:text-[16px] md:px-4 md:py-2 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition-colors"
                         >
                           <Edit size={16} />
                           Edit
                         </button>
                         <button
                           onClick={() => downloadDoc(selectedDocument.id.toString(), 'generated')}
-                          className="px-[10px] py-1 text-[10px] md:text-[16px] md:px-4 md:py-2 flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors"
+                          className="cursor-pointer px-[10px] py-1 text-[10px] md:text-[16px] md:px-4 md:py-2 flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors"
                         >
                           <Download size={16} />
                           Download
@@ -1031,7 +1031,7 @@ export default function DocumentManagementPage() {
                         <button
                           onClick={saveEdit}
                           disabled={loading}
-                          className="flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors disabled:opacity-50"
+                          className="cursor-pointer flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors disabled:opacity-50"
                         >
                           <CheckCircle size={16} />
                           {loading ? "Saving..." : "Save"}
@@ -1041,7 +1041,7 @@ export default function DocumentManagementPage() {
                             setIsEditing(false);
                             setEditContent("");
                           }}
-                          className="flex items-center gap-2 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded transition-colors"
+                          className="cursor-pointer flex items-center gap-2 bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded transition-colors"
                         >
                           <X size={16} />
                           Cancel

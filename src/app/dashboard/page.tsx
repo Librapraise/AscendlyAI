@@ -22,7 +22,12 @@ import {
   Users,
   Activity,
   Menu,
-  Filter
+  Filter,
+  FileEdit,
+  MessageSquare,
+  User,
+  Building,
+  Clock,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import path from 'path';
@@ -43,6 +48,8 @@ interface Document {
   created_at?: string;
   size?: number;
   type?: string;
+  status?: 'pending' | 'processing' | 'completed' | 'failed';
+  error_message?: string;
 }
 
 interface AuthState {
@@ -393,10 +400,45 @@ export default function DashboardPage() {
     }
   };
 
+
+  const getDocumentTypeIcon = (type: string) => {
+    switch (type) {
+      case 'rewrite-resume': return <FileEdit size={20} />;
+      case 'cover-letter': return <MessageSquare size={20} />;
+      case 'tailor-resume': return <User size={20} />;
+      case 'interview-questions': return <Building size={20} />;
+      default: return <FileText size={20} />;
+    }
+  };
+
+  const getDocumentTypeLabel = (type: string) => {
+    switch (type) {
+      case 'rewrite-resume': return 'Rewrite Resume';
+      case 'cover-letter': return 'Cover Letter';
+      case 'tailor-resume': return 'Tailor Resume';
+      case 'interview-questions': return 'Interview Questions';
+      default: return type;
+    }
+  };
+
+  // Document actions //Edit
   const handleDocumentEdit = (id: string) => {
     window.location.href = `/documents?view=${id}`;
   };
 
+  // Document viewer state
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [showViewer, setShowViewer] = useState(false);
+
+  // View document in a modal
+  const viewDocument = (doc: Document) => {
+    console.log('Viewing document:', doc);
+    setSelectedDocument(doc);
+    setShowViewer(true);
+  };
+  
+
+  // Handle document download with filename extraction
   const handleDocumentDownload = async (id: string) => {
     if (!auth.isAuthenticated) {
       setError("Please log in to download documents.");
@@ -404,14 +446,32 @@ export default function DashboardPage() {
     }
 
     try {
+      setLoading(true);
       const response = await apiRequest(`https://weapply.onrender.com/api/v1/documents/generated/${id}/download`);
-      if (!response.ok) throw new Error(`Download failed: ${response.statusText}`);
+      
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.statusText}`);
+      }
       
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `document-${id}.pdf`;
+      
+      // Try to get filename from response headers or use the document title
+      const contentDisposition = response.headers.get('content-disposition');
+      let filename = `document-${id}.pdf`;
+      
+      if (contentDisposition) {
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(contentDisposition);
+        if (matches != null && matches[1]) {
+          filename = matches[1].replace(/['"]/g, '');
+        }
+      } else if (selectedDocument?.title) {
+        filename = `${selectedDocument.title}.pdf`;
+      }
+      
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -420,6 +480,8 @@ export default function DashboardPage() {
       setSuccessMessage("Document downloaded successfully!");
     } catch (err: any) {
       setError(err.message || "Failed to download document.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -459,6 +521,105 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-900 text-white lg:pl-72">
       <div className="p-3 sm:p-4 md:p-6 lg:p-8">
+
+        {/* Document Viewer Modal */}
+        {showViewer && selectedDocument && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 lg:pl-50">
+            <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
+              <div className="flex items-center justify-between p-6 border-b border-gray-700">
+                <h2 className="text-xl font-bold">
+                  {selectedDocument.title || selectedDocument.file?.filename || getDocumentTypeLabel(selectedDocument.type || 'Document')}
+                </h2>
+                <div className="flex items-center gap-2">
+                  {selectedDocument.status === 'completed' && (
+                    <button
+                      onClick={() => handleDocumentDownload(selectedDocument.id)}
+                      className="cursor-pointer flex items-center gap-2 bg-green-600 hover:bg-green-700 px-4 py-2 rounded transition-colors"
+                    >
+                      <Download size={16} />
+                      Download
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setShowViewer(false)}
+                    className="cursor-pointer text-gray-400 hover:text-white p-2"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                {(() => {
+                  // Determine what content to show
+                  const content = selectedDocument.content || 
+                                selectedDocument.extracted_text || 
+                                selectedDocument.description_text;
+                  
+                  if (selectedDocument.status === 'failed') {
+                    return (
+                      <div className="text-center py-8 text-red-400">
+                        <AlertCircle size={48} className="mx-auto mb-4" />
+                        <p className="text-lg mb-2">Generation failed</p>
+                        {selectedDocument.error_message && (
+                          <p className="text-sm text-gray-400">{selectedDocument.error_message}</p>
+                        )}
+                      </div>
+                    );
+                  }
+                  
+                  if (selectedDocument.status === 'processing') {
+                    return (
+                      <div className="text-center py-8 text-blue-400">
+                        <RefreshCw size={48} className="animate-spin mx-auto mb-4" />
+                        <p className="text-lg">Processing document...</p>
+                      </div>
+                    );
+                  }
+                  
+                  if (selectedDocument.status === 'pending') {
+                    return (
+                      <div className="text-center py-8 text-yellow-400">
+                        <Clock size={48} className="mx-auto mb-4" />
+                        <p className="text-lg">Document is pending</p>
+                      </div>
+                    );
+                  }
+                  
+                  if (content) {
+                    return (
+                      <div className="bg-gray-700 rounded-lg p-4">
+                        <pre className="whitespace-pre-wrap font-mono text-sm leading-relaxed text-gray-100">
+                          {content}
+                        </pre>
+                      </div>
+                    );
+                  }
+                  
+                  // Fallback for documents without text content
+                  return (
+                    <div className="text-center py-8 text-gray-400">
+                      <FileText size={48} className="mx-auto mb-4" />
+                      <p className="text-lg mb-2">Preview not available</p>
+                      <p className="text-sm">This document type cannot be previewed in the browser.</p>
+                      {selectedDocument.status === 'completed' && (
+                        <button
+                          onClick={() => handleDocumentDownload(selectedDocument.id)}
+                          className="mt-4 flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded transition-colors mx-auto"
+                        >
+                          <Download size={16} />
+                          Download to view
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+        )}
+
+
         {/* Header */}
         <div className="flex items-center justify-between mb-6 sm:mb-8">
           <div className="flex-1 min-w-0">
@@ -611,7 +772,7 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <button
               onClick={() => handleNavigation(path.join('/documents'))}
-              className="bg-gray-800 hover:bg-gray-700 p-4 sm:p-6 rounded-xl transition-all duration-300 hover:scale-105 border border-gray-700 hover:border-blue-500 text-left"
+              className="cursor-pointer bg-gray-800 hover:bg-gray-700 p-4 sm:p-6 rounded-xl transition-all duration-300 hover:scale-105 border border-gray-700 hover:border-blue-500 text-left"
             >
               <FileText size={24} className="text-blue-400 mb-2 sm:mb-3" />
               <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Manage Documents</h3>
@@ -620,7 +781,7 @@ export default function DashboardPage() {
             
             <button
               onClick={() => handleNavigation('/generate')}
-              className="bg-gray-800 hover:bg-gray-700 p-4 sm:p-6 rounded-xl transition-all duration-300 hover:scale-105 border border-gray-700 hover:border-purple-500 text-left"
+              className="cursor-pointer bg-gray-800 hover:bg-gray-700 p-4 sm:p-6 rounded-xl transition-all duration-300 hover:scale-105 border border-gray-700 hover:border-purple-500 text-left"
             >
               <Activity size={24} className="text-purple-400 mb-2 sm:mb-3" />
               <h3 className="font-semibold mb-1 sm:mb-2 text-sm sm:text-base">Generate Resume</h3>
@@ -632,7 +793,7 @@ export default function DashboardPage() {
         {/* Recent Documents */}
         <div className="bg-gray-800 rounded-xl p-4 sm:p-6 border border-gray-700">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
-            <h2 className="text-lg sm:text-xl font-bold">Recent Documents</h2>
+            <h2 className="text-lg sm:text-xl font-bold">Recent Uploads</h2>
             
             {/* Mobile Search & Filter */}
             <div className="flex items-center gap-2 sm:gap-4">
@@ -676,8 +837,8 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div className="space-y-3 sm:space-y-4">
-              {filteredDocuments.slice(0, 5).map((doc) => (
-                <div key={doc.id} className="bg-gray-700 p-3 sm:p-4 rounded-lg hover:bg-gray-600 transition-colors">
+              {filteredDocuments.slice(0, 5).map((doc, index) => (
+                <div key={`${doc.type || 'unknown'}-${doc.id}-${index}`} className="bg-gray-700 p-3 sm:p-4 rounded-lg hover:bg-gray-600 transition-colors">
                   <div className="flex items-center justify-between gap-2 sm:gap-4">
                     <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                       <div className="flex-shrink-0">
@@ -706,32 +867,16 @@ export default function DashboardPage() {
                     
                     <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                       <button
-                        onClick={() => console.log(`View document: ${doc.id}`)}
-                        className="p-1.5 sm:p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-600 rounded transition-colors"
+                        onClick={() => viewDocument(doc)}
+                        className="cursor-pointer p-1.5 sm:p-2 text-gray-400 hover:text-blue-400 hover:bg-gray-600 rounded transition-colors"
                         title="View document"
                       >
                         <Eye size={14} />
                       </button>
                       
                       <button
-                        onClick={() => handleDocumentEdit(doc.id)}
-                        className="p-1.5 sm:p-2 text-gray-400 hover:text-yellow-400 hover:bg-gray-600 rounded transition-colors"
-                        title="Edit document"
-                      >
-                        <Edit size={14} />
-                      </button>
-                      
-                      <button
-                        onClick={() => handleDocumentDownload(doc.id)}
-                        className="p-1.5 sm:p-2 text-gray-400 hover:text-green-400 hover:bg-gray-600 rounded transition-colors"
-                        title="Download document"
-                      >
-                        <Download size={14} />
-                      </button>
-                      
-                      <button
                         onClick={() => handleDocumentDelete(doc.id)}
-                        className="p-1.5 sm:p-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded transition-colors"
+                        className="cursor-pointer p-1.5 sm:p-2 text-gray-400 hover:text-red-400 hover:bg-gray-600 rounded transition-colors"
                         title="Delete document"
                       >
                         <Trash2 size={14} />
@@ -779,13 +924,13 @@ export default function DashboardPage() {
                 <div className="flex gap-2 pt-4">
                   <button
                     onClick={() => setShowMobileFilter(false)}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 py-3 rounded"
+                    className="cursor-pointer flex-1 bg-blue-600 hover:bg-blue-700 py-3 rounded"
                   >
                     Apply Filters
                   </button>
                   <button
                     onClick={() => setShowMobileFilter(false)}
-                    className="flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded"
+                    className="cursor-pointer flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded"
                   >
                     Clear
                   </button>
@@ -816,16 +961,10 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex gap-1 ml-2">
                       <button
-                        onClick={() => console.log(`View resume: ${resume.id}`)}
-                        className="p-1 text-gray-400 hover:text-blue-400 transition-colors"
+                        onClick={() => viewDocument(resume)}
+                        className="cursor-pointer p-1 text-gray-400 hover:text-blue-400 transition-colors"
                       >
                         <Eye size={12} />
-                      </button>
-                      <button
-                        onClick={() => handleDocumentEdit(resume.id)}
-                        className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
-                      >
-                        <Edit size={12} />
                       </button>
                     </div>
                   </div>
@@ -833,7 +972,7 @@ export default function DashboardPage() {
                 {resumes.length > 3 && (
                   <button
                     onClick={() => handleNavigation('/documents?type=resume')}
-                    className="w-full text-xs sm:text-sm text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-gray-700 transition-colors"
+                    className="cursor-pointer w-full text-xs sm:text-sm text-blue-400 hover:text-blue-300 p-2 rounded-lg hover:bg-gray-700 transition-colors"
                   >
                     View all {resumes.length} resumes
                   </button>
@@ -861,16 +1000,10 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex gap-1 ml-2">
                       <button
-                        onClick={() => console.log(`View job: ${job.id}`)}
-                        className="p-1 text-gray-400 hover:text-green-400 transition-colors"
+                        onClick={() => viewDocument(job)}
+                        className="cursor-pointer p-1 text-gray-400 hover:text-green-400 transition-colors"
                       >
                         <Eye size={12} />
-                      </button>
-                      <button
-                        onClick={() => handleDocumentEdit(job.id)}
-                        className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
-                      >
-                        <Edit size={12} />
                       </button>
                     </div>
                   </div>
@@ -878,7 +1011,7 @@ export default function DashboardPage() {
                 {jobDescriptions.length > 3 && (
                   <button
                     onClick={() => handleNavigation('/documents?type=job_description')}
-                    className="w-full text-xs sm:text-sm text-green-400 hover:text-green-300 p-2 rounded-lg hover:bg-gray-700 transition-colors"
+                    className="cursor-pointer w-full text-xs sm:text-sm text-green-400 hover:text-green-300 p-2 rounded-lg hover:bg-gray-700 transition-colors"
                   >
                     View all {jobDescriptions.length} job descriptions
                   </button>
@@ -908,14 +1041,14 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex gap-1 ml-2">
                       <button
-                        onClick={() => console.log(`View generated: ${doc.id}`)}
-                        className="p-1 text-gray-400 hover:text-purple-400 transition-colors"
+                        onClick={() => viewDocument(doc)}
+                        className="cursor-pointer p-1 text-gray-400 hover:text-purple-400 transition-colors"
                       >
                         <Eye size={12} />
                       </button>
                       <button
                         onClick={() => handleDocumentDownload(doc.id)}
-                        className="p-1 text-gray-400 hover:text-green-400 transition-colors"
+                        className="cursor-pointer p-1 text-gray-400 hover:text-green-400 transition-colors"
                       >
                         <Download size={12} />
                       </button>
