@@ -235,7 +235,7 @@ export default function SignUpPage() {
       <div className="w-full max-w-md">
         <div className="bg-gray-800 rounded-3xl shadow-2xl border border-gray-700 p-8">
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Join ResumMeAI</h1>
+            <h1 className="text-3xl font-bold text-white mb-2">Join AscendlyAI</h1>
             <p className="text-gray-300">Create your account and start building</p>
           </div>
 
