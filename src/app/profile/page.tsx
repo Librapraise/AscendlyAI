@@ -220,7 +220,7 @@ export default function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center lg:pl-72">
         <div className="flex items-center space-x-3">
           <Loader className="animate-spin h-6 w-6 text-blue-400" />
           <span className="text-gray-300">Loading profile...</span>
@@ -274,7 +274,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-gray-900 py-8 px-4 lg:pl-72">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="opacity-0 animate-fade-in bg-gray-800 rounded-2xl border border-gray-700 p-6 md:p-8" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">

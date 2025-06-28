@@ -219,7 +219,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 py-8 px-4">
+    <div className="min-h-screen bg-gray-900 py-8 px-4 lg:pl-72">
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* Header */}
@@ -475,6 +475,8 @@ export default function SettingsPage() {
               <h2 className="text-xl font-bold text-white">Preferences</h2>
             </div>
             <div className="space-y-6">
+
+              {/* Theme, Language, Date Format 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-3">Theme</label>
                 <div className="flex space-x-3">
@@ -496,6 +498,7 @@ export default function SettingsPage() {
                   ))}
                 </div>
               </div>
+              */}
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-3">Language</label>
